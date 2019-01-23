@@ -69,10 +69,16 @@ new FormModel {
 						"text": "New - Template"
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "newMenuItemActionPerformed", true ) )
 					} )
+					add( new FormComponent( "javax.swing.JSeparator" ) {
+						name: "separator2"
+					} )
 					add( new FormComponent( "javax.swing.JMenuItem" ) {
 						name: "openMenuItem"
 						"text": "Open"
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "openMenuItemActionPerformed", true ) )
+					} )
+					add( new FormComponent( "javax.swing.JSeparator" ) {
+						name: "separator3"
 					} )
 					add( new FormComponent( "javax.swing.JMenuItem" ) {
 						name: "saveMenuItem"
@@ -84,12 +90,20 @@ new FormModel {
 						"text": "Save As..."
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "saveAsMenuItemActionPerformed", true ) )
 					} )
+					add( new FormComponent( "javax.swing.JSeparator" ) {
+						name: "separator4"
+					} )
+					add( new FormComponent( "javax.swing.JMenuItem" ) {
+						name: "exitMenuItem"
+						"text": "Exit"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "exitMenuItemActionPerformed", true ) )
+					} )
 				} )
 				add( new FormContainer( "javax.swing.JMenu", new FormLayoutManager( class javax.swing.JMenu ) ) {
-					name: "buildMidiMenu"
+					name: "runMenu"
 					"text": "Run"
 					add( new FormComponent( "javax.swing.JMenuItem" ) {
-						name: "generateMidiMenuItem"
+						name: "exportMidiMenuItem"
 						"text": "Export Midi File"
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "generateMidiMenuItemActionPerformed", true ) )
 					} )
@@ -122,7 +136,7 @@ new FormModel {
 					"text": "Help"
 					add( new FormComponent( "javax.swing.JMenuItem" ) {
 						name: "InstruMenuItem"
-						"text": "Instrument"
+						"text": "Instruments"
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "InstruMenuItemActionPerformed", true ) )
 					} )
 					add( new FormComponent( "javax.swing.JMenuItem" ) {

@@ -89,20 +89,8 @@ public class GUI extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                //删除临时ino文件
-                if (showSaveComfirm("Exist unsaved content, save before exit?")) {
-                    File tempFile = tempMidiFile;
-
-                    if (tempFile != null && tempFile.exists())
-                        tempFile.delete();
-
-                    tempFile = new File("C:\\Users\\Chief\\Documents\\Arduino\\temp.ino");
-
-                    if (tempFile.exists())
-                        tempFile.delete();
-
-                    System.exit(0);
-                }
+                //删除临时Midi文件
+                exitMenuItemActionPerformed(null);
             }
         });
 
@@ -958,17 +946,32 @@ public class GUI extends JFrame {
         outputTextPane.setCaretPosition(0);
     }
 
+    //退出
+    private void exitMenuItemActionPerformed(ActionEvent e) {
+        //删除临时Midi文件
+        if (showSaveComfirm("Exist unsaved content, save before exit?")) {
+            if (tempMidiFile != null && tempMidiFile.exists())
+                tempMidiFile.delete();
+
+            System.exit(0);
+        }
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         menuBar1 = new JMenuBar();
         fileMenu = new JMenu();
         newEmptyMenuItem = new JMenuItem();
         newMenuItem = new JMenuItem();
+        separator2 = new JSeparator();
         openMenuItem = new JMenuItem();
+        separator3 = new JSeparator();
         saveMenuItem = new JMenuItem();
         saveAsMenuItem = new JMenuItem();
-        buildMidiMenu = new JMenu();
-        generateMidiMenuItem = new JMenuItem();
+        separator4 = new JSeparator();
+        exitMenuItem = new JMenuItem();
+        runMenu = new JMenu();
+        exportMidiMenuItem = new JMenuItem();
         playMenuItem = new JMenuItem();
         loadSoundFontMenuItem = new JMenuItem();
         playDirectMenuItem = new JMenuItem();
@@ -1009,11 +1012,13 @@ public class GUI extends JFrame {
                 newMenuItem.setText("New - Template");
                 newMenuItem.addActionListener(e -> newMenuItemActionPerformed(e));
                 fileMenu.add(newMenuItem);
+                fileMenu.add(separator2);
 
                 //---- openMenuItem ----
                 openMenuItem.setText("Open");
                 openMenuItem.addActionListener(e -> openMenuItemActionPerformed(e));
                 fileMenu.add(openMenuItem);
+                fileMenu.add(separator3);
 
                 //---- saveMenuItem ----
                 saveMenuItem.setText("Save");
@@ -1024,47 +1029,53 @@ public class GUI extends JFrame {
                 saveAsMenuItem.setText("Save As...");
                 saveAsMenuItem.addActionListener(e -> saveAsMenuItemActionPerformed(e));
                 fileMenu.add(saveAsMenuItem);
+                fileMenu.add(separator4);
+
+                //---- exitMenuItem ----
+                exitMenuItem.setText("Exit");
+                exitMenuItem.addActionListener(e -> exitMenuItemActionPerformed(e));
+                fileMenu.add(exitMenuItem);
             }
             menuBar1.add(fileMenu);
 
-            //======== buildMidiMenu ========
+            //======== runMenu ========
             {
-                buildMidiMenu.setText("Run");
+                runMenu.setText("Run");
 
-                //---- generateMidiMenuItem ----
-                generateMidiMenuItem.setText("Export Midi File");
-                generateMidiMenuItem.addActionListener(e -> generateMidiMenuItemActionPerformed(e));
-                buildMidiMenu.add(generateMidiMenuItem);
+                //---- exportMidiMenuItem ----
+                exportMidiMenuItem.setText("Export Midi File");
+                exportMidiMenuItem.addActionListener(e -> generateMidiMenuItemActionPerformed(e));
+                runMenu.add(exportMidiMenuItem);
 
                 //---- playMenuItem ----
                 playMenuItem.setText("Play Midi File");
                 playMenuItem.addActionListener(e -> playMenuItemActionPerformed(e));
-                buildMidiMenu.add(playMenuItem);
-                buildMidiMenu.addSeparator();
+                runMenu.add(playMenuItem);
+                runMenu.addSeparator();
 
                 //---- loadSoundFontMenuItem ----
                 loadSoundFontMenuItem.setText("Load SoundFont");
                 loadSoundFontMenuItem.addActionListener(e -> loadSoundFontMenuItemActionPerformed(e));
-                buildMidiMenu.add(loadSoundFontMenuItem);
+                runMenu.add(loadSoundFontMenuItem);
 
                 //---- playDirectMenuItem ----
                 playDirectMenuItem.setText("Play with SoundFont");
                 playDirectMenuItem.addActionListener(e -> playDirectMenuItemActionPerformed(e));
-                buildMidiMenu.add(playDirectMenuItem);
+                runMenu.add(playDirectMenuItem);
 
                 //---- stopDirectMenuItem ----
                 stopDirectMenuItem.setText("Stop");
                 stopDirectMenuItem.addActionListener(e -> stopDirectMenuItemActionPerformed(e));
-                buildMidiMenu.add(stopDirectMenuItem);
+                runMenu.add(stopDirectMenuItem);
             }
-            menuBar1.add(buildMidiMenu);
+            menuBar1.add(runMenu);
 
             //======== helpMenu ========
             {
                 helpMenu.setText("Help");
 
                 //---- InstruMenuItem ----
-                InstruMenuItem.setText("Instrument");
+                InstruMenuItem.setText("Instruments");
                 InstruMenuItem.addActionListener(e -> InstruMenuItemActionPerformed(e));
                 helpMenu.add(InstruMenuItem);
 
@@ -1148,11 +1159,15 @@ public class GUI extends JFrame {
     private JMenu fileMenu;
     private JMenuItem newEmptyMenuItem;
     private JMenuItem newMenuItem;
+    private JSeparator separator2;
     private JMenuItem openMenuItem;
+    private JSeparator separator3;
     private JMenuItem saveMenuItem;
     private JMenuItem saveAsMenuItem;
-    private JMenu buildMidiMenu;
-    private JMenuItem generateMidiMenuItem;
+    private JSeparator separator4;
+    private JMenuItem exitMenuItem;
+    private JMenu runMenu;
+    private JMenuItem exportMidiMenuItem;
     private JMenuItem playMenuItem;
     private JMenuItem loadSoundFontMenuItem;
     private JMenuItem playDirectMenuItem;
