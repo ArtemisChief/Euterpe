@@ -15,8 +15,11 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+import javax.xml.crypto.Data;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetAdapter;
@@ -24,6 +27,7 @@ import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,8 +43,6 @@ public class GUI extends JFrame {
 
     private boolean hasSaved = false;
     private boolean hasChanged = false;
-    private boolean ctrlPressed = false;
-    private boolean sPressed = false;
     private boolean isLoadedMidiFile = false;
 
     private SimpleAttributeSet attributeSet;
@@ -61,7 +63,17 @@ public class GUI extends JFrame {
     private Semantic semantic;
     private MidiPlayer midiPlayer;
 
-    //初始化
+    private String[] inputStack;
+    private int inputStackPointer;
+    private int inputStackUsedPointer=-1;
+    private int inputStackBottom;
+    private int inputStackTop=inputStackCapacity-1;
+    private final static int inputStackCapacity=101;
+    private int[] caretPosStack;
+
+    private boolean isMouseDragging=false;
+
+    //初始化与案件绑定
     public GUI() {
         initComponents();
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -85,6 +97,10 @@ public class GUI extends JFrame {
         keywordPattern = Pattern.compile("\\bspeed=|\\binstrument=|\\bvolume=|\\b1=");
         parenPattern = Pattern.compile("<(\\s*\\{?\\s*(1|2|4|8|g|w|\\*)+\\s*\\}?\\s*)+>");
 
+        //输入内容栈
+        inputStack=new String[inputStackCapacity];
+        caretPosStack=new int[inputStackCapacity];
+
         //关闭窗口提示
         addWindowListener(new WindowAdapter() {
             @Override
@@ -94,51 +110,47 @@ public class GUI extends JFrame {
             }
         });
 
-        //着色与补全的监听
+        //着色与补全、快捷键等的监听
         inputTextPane.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_UP ||
-                        e.getKeyCode() == KeyEvent.VK_DOWN ||
-                        e.getKeyCode() == KeyEvent.VK_LEFT ||
-                        e.getKeyCode() == KeyEvent.VK_RIGHT ||
-                        e.getKeyCode() == KeyEvent.VK_BACK_SPACE ||
-                        e.getKeyCode() == KeyEvent.VK_SHIFT ||
-                        e.getKeyCode() == KeyEvent.VK_ALT)
+                if (e.isActionKey())
                     return;
 
-                if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
-                    ctrlPressed = false;
-                    return;
-                }
+                if (e.getKeyCode() != KeyEvent.VK_BACK_SPACE)
+                    autoComplete();
 
-                if (e.getKeyCode() == KeyEvent.VK_S) {
-                    sPressed = false;
-                    return;
-                }
-
-                autoComplete();
                 refreshColor();
             }
 
             @Override
             public void keyPressed(KeyEvent e) {
+                //讲输入框文本存入栈
+                if (!e.isControlDown())
+                    inputStackPush();
+
                 if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
                     autoRemove();
                     refreshColor();
                 }
 
-                if (e.getKeyCode() == KeyEvent.VK_CONTROL)
-                    ctrlPressed = true;
+                if (e.getKeyCode() == KeyEvent.VK_V)
+                    if (e.isControlDown())
+                        inputStackPush();
 
                 if (e.getKeyCode() == KeyEvent.VK_S)
-                    sPressed = true;
+                    if (e.isControlDown())
+                        saveMenuItemActionPerformed(null);
 
-                if (ctrlPressed && sPressed) {
-                    sPressed = false;
-                    ctrlPressed = false;
-                    saveMenuItemActionPerformed(null);
-                }
+                if (e.getKeyCode() == KeyEvent.VK_Z)
+                    if (e.isControlDown())
+                        undo();
+
+                if (e.getKeyCode() == KeyEvent.VK_Y)
+                    if (e.isControlDown())
+                        redo();
+
+//                System.out.println("stack: " + inputStack.toString() + "\nbottom: " + inputStackBottom + "\npointer: " + inputStackPointer+"\ntop: "+inputStackTop+"\nused: "+inputStackUsedPointer);
             }
         });
 
@@ -156,7 +168,7 @@ public class GUI extends JFrame {
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                contentChanged();
+//                contentChanged();
             }
         });
 
@@ -177,50 +189,58 @@ public class GUI extends JFrame {
 
         TipsMenuItemActionPerformed(null);
 
-        //文件拖拽直接打开
-        new DropTarget(inputTextPane, DnDConstants.ACTION_COPY_OR_MOVE, new DropTargetAdapter() {
-            @Override
-            public void drop(DropTargetDropEvent dtde) {
-                try {
-                    if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                        if (!showSaveComfirm("Exist unsaved content, save before open file?"))
-                            return;
-
-                        dtde.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
-                        java.util.List<File> fileList = (java.util.List<File>) dtde.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-
-                        if (fileList.get(0).getName().indexOf(".mui") == -1) {
-                            JOptionPane.showMessageDialog(null, "不支持的文件格式", "Warning", JOptionPane.INFORMATION_MESSAGE);
-                            return;
-                        }
-                        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(fileList.get(0)), "UTF-8"));
-                        StringBuilder stringBuilder = new StringBuilder();
-                        String content;
-                        while ((content = bufferedReader.readLine()) != null) {
-                            stringBuilder.append(content);
-                            stringBuilder.append(System.getProperty("line.separator"));
-                        }
-                        bufferedReader.close();
-                        inputTextPane.setText(stringBuilder.toString());
-                        inputTextPane.setCaretPosition(0);
-                        outputTextPane.setText("");
-                        refreshColor();
-                        hasSaved = true;
-                        hasChanged = false;
-                        setTitle("Music Interpreter - " + fileList.get(0).getName());
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
         //播放完成事件
         midiPlayer.getSequencer().addMetaEventListener(meta -> {
             if (meta.getType() == 47) {
                 stopDirectMenuItemActionPerformed(null);
             }
         });
+    }
+
+    //输入栈入栈
+    private void inputStackPush() {
+        inputStack[inputStackPointer % inputStackCapacity] = inputTextPane.getText();
+        caretPosStack[inputStackPointer % inputStackCapacity] = inputTextPane.getCaretPosition();
+        inputStackPointer++;
+        inputStackUsedPointer++;
+
+        if (inputStackPointer > inputStackTop - 1) {
+            inputStackTop++;
+            inputStackBottom++;
+        }
+    }
+
+    //输入栈出栈
+    private String inputStackPop() {
+        if (inputStackPointer > inputStackBottom) {
+            int p = --inputStackPointer;
+            if (p > -1)
+                return inputStack[p % inputStackCapacity];
+        }
+        return null;
+    }
+
+    //撤销(undo)
+    private void undo() {
+        String text = inputStackPop();
+        if (text != null) {
+            if (inputStackPointer == inputStackUsedPointer) {
+                inputStack[(inputStackUsedPointer + 1) % inputStackCapacity] = inputTextPane.getText();
+                caretPosStack[(inputStackUsedPointer + 1) % inputStackCapacity] = inputTextPane.getCaretPosition();
+            }
+            inputTextPane.setText(text);
+            inputTextPane.setCaretPosition(caretPosStack[inputStackPointer % inputStackCapacity]);
+            refreshColor();
+        }
+    }
+
+    //重做(redo)
+    private void redo() {
+        if (inputStackPointer < inputStackUsedPointer+1) {
+            inputTextPane.setText(inputStack[++inputStackPointer % inputStackCapacity]);
+            inputTextPane.setCaretPosition(caretPosStack[inputStackPointer % inputStackCapacity]);
+            refreshColor();
+        }
     }
 
     //内容变动调用的函数
@@ -272,7 +292,7 @@ public class GUI extends JFrame {
         StringBuilder input = new StringBuilder(inputTextPane.getText().replace("\r", ""));
         int pos = inputTextPane.getCaretPosition();
         if (pos > 0) {
-            if (pos < input.length() && (input.substring(pos, pos + 1).equals(" ") || input.substring(pos, pos + 1).equals("\n")) || pos == input.length())
+            if (pos < input.length() && (input.substring(pos, pos + 1).equals(" ") || input.substring(pos, pos + 1).equals("\n") || input.substring(pos, pos + 1).equals(")") || input.substring(pos, pos + 1).equals("]")) || pos == input.length())
                 switch (input.charAt(pos - 1)) {
                     case '(':
                         input.insert(pos, ')');
@@ -1130,6 +1150,7 @@ public class GUI extends JFrame {
                 inputTextPane.setFont(new Font("Microsoft YaHei", Font.PLAIN, 14));
                 inputTextPane.setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
                 inputTextPane.setBorder(null);
+                inputTextPane.setDragEnabled(true);
                 scrollPane1.setViewportView(inputTextPane);
             }
             panel1.add(scrollPane1, "cell 1 0,width 400:400:875,height 640:640:1080");
@@ -1143,7 +1164,6 @@ public class GUI extends JFrame {
                 outputTextPane.setBorder(null);
                 outputTextPane.setSelectionColor(Color.white);
                 outputTextPane.setSelectedTextColor(new Color(60, 60, 60));
-                outputTextPane.setEditable(false);
                 scrollPane2.setViewportView(outputTextPane);
             }
             panel1.add(scrollPane2, "cell 2 0,width 460:460:1005,height 640:640:1080");

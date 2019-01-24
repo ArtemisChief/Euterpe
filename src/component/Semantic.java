@@ -50,8 +50,8 @@ public class Semantic {
 
     private void DFS_Midi(Node curNode, Paragraph para) {
         Paragraph paragraph = para;
-        List<Integer> noteList = null;
-        List<Integer> durationList = null;
+        List<Integer> noteList;
+        List<Integer> durationList;
         int lineNoteCount = 0;
         int lineRhythmCount = 0;
 

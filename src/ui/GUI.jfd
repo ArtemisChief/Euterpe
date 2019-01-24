@@ -35,6 +35,7 @@ new FormModel {
 						"font": new java.awt.Font( "Microsoft YaHei", 0, 14 )
 						"cursor": &Cursor0 new java.awt.Cursor( 2 )
 						"border": sfield com.jformdesigner.model.FormObject NULL_VALUE
+						"dragEnabled": true
 					} )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 					"value": "cell 1 0,width 400:400:875,height 640:640:1080"
@@ -48,7 +49,6 @@ new FormModel {
 						"border": sfield com.jformdesigner.model.FormObject NULL_VALUE
 						"selectionColor": sfield java.awt.Color white
 						"selectedTextColor": new java.awt.Color( 60, 60, 60, 255 )
-						"editable": false
 					} )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 					"value": "cell 2 0,width 460:460:1005,height 640:640:1080"
