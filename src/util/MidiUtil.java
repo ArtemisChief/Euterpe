@@ -9,6 +9,13 @@ public class MidiUtil {
         return result;
     }
 
+    public static byte[] mergeByte(byte[] b1, byte b2) {
+        byte[] result = new byte[b1.length + 1];
+        System.arraycopy(b1, 0, result, 0, b1.length);
+        result[b1.length] = b2;
+        return result;
+    }
+
     public static int bpmToMpt(float bpm) {
         return (int) (60 / bpm * 1000000);
     }
