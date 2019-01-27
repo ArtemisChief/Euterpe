@@ -20,14 +20,13 @@ import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.dnd.DnDConstants;
-import java.awt.dnd.DropTarget;
-import java.awt.dnd.DropTargetAdapter;
-import java.awt.dnd.DropTargetDropEvent;
+import java.awt.dnd.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,7 +70,7 @@ public class GUI extends JFrame {
     private final static int inputStackCapacity=101;
     private int[] caretPosStack;
 
-    private boolean isMouseDragging=false;
+    private java.util.Timer timer;
 
     //初始化与案件绑定
     public GUI() {
@@ -128,6 +127,20 @@ public class GUI extends JFrame {
                 //讲输入框文本存入栈
                 if (!e.isControlDown())
                     inputStackPush();
+
+                if(e.getKeyCode() ==KeyEvent.VK_RIGHT)
+                    forwardMenuItemActionPerformed(null);
+
+                if(e.getKeyCode() ==KeyEvent.VK_LEFT)
+                    backwardMenuItemActionPerformed(null);
+
+                if (e.getKeyCode() == KeyEvent.VK_RIGHT)
+                    if (e.isControlDown())
+                        fastForwardMenuItemActionPerformed(null);
+
+                if (e.getKeyCode() == KeyEvent.VK_LEFT)
+                    if (e.isControlDown())
+                        fastBackwardMenuItemActionPerformed(null);
 
                 if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
                     autoRemove();
@@ -740,12 +753,63 @@ public class GUI extends JFrame {
             midiPlayer.play();
             playDirectMenuItem.setText("Pause");
         }
+
+        if (timer == null)
+            timer = new Timer();
+
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (midiPlayer.getIsRunning()) {
+                    if (hasSaved)
+                        outputTextPane.setText(midiPlayer.getGraphicPlayer(file.getName().substring(0, file.getName().indexOf(".mui"))));
+                    else
+                        outputTextPane.setText(midiPlayer.getGraphicPlayer("Unsaved Music"));
+                }
+            }
+        }, 0, 100);
     }
 
     //停止直接播放Midi按钮
     private void stopDirectMenuItemActionPerformed(ActionEvent e) {
-        playDirectMenuItem.setText("Play with SoundFont");
+        if (timer != null) {
+            timer.cancel();
+            timer.purge();
+            timer = null;
+        }
+
+        playDirectMenuItem.setText("Play");
         midiPlayer.stop();
+    }
+
+    //快进
+    private void fastMove(int seconds) {
+        if (midiPlayer.getIsRunning()) {
+            long pos = midiPlayer.getMicrosecondPosition();
+            pos += 1000000 * seconds;
+            midiPlayer.setMicrosecondPosition(pos);
+        }
+    }
+
+    //前进1秒
+    private void forwardMenuItemActionPerformed(ActionEvent e) {
+        fastMove(1);
+    }
+
+    //后退1秒
+    private void backwardMenuItemActionPerformed(ActionEvent e) {
+        fastMove(-1);
+
+    }
+
+    //前进五秒
+    private void fastForwardMenuItemActionPerformed(ActionEvent e) {
+        fastMove(5);
+    }
+
+    //后退五秒
+    private void fastBackwardMenuItemActionPerformed(ActionEvent e) {
+        fastMove(-5);
     }
 
     //关于
@@ -977,6 +1041,8 @@ public class GUI extends JFrame {
         }
     }
 
+
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         menuBar1 = new JMenuBar();
@@ -993,9 +1059,14 @@ public class GUI extends JFrame {
         runMenu = new JMenu();
         exportMidiMenuItem = new JMenuItem();
         playMenuItem = new JMenuItem();
+        playerMenu = new JMenu();
         loadSoundFontMenuItem = new JMenuItem();
         playDirectMenuItem = new JMenuItem();
         stopDirectMenuItem = new JMenuItem();
+        forwardMenuItem = new JMenuItem();
+        backwardMenuItem = new JMenuItem();
+        fastForwardMenuItem = new JMenuItem();
+        fastBackwardMenuItem = new JMenuItem();
         helpMenu = new JMenu();
         InstruMenuItem = new JMenuItem();
         TipsMenuItem = new JMenuItem();
@@ -1071,24 +1142,52 @@ public class GUI extends JFrame {
                 playMenuItem.setText("Play Midi File");
                 playMenuItem.addActionListener(e -> playMenuItemActionPerformed(e));
                 runMenu.add(playMenuItem);
-                runMenu.addSeparator();
+            }
+            menuBar1.add(runMenu);
+
+            //======== playerMenu ========
+            {
+                playerMenu.setText("Midi Player");
 
                 //---- loadSoundFontMenuItem ----
                 loadSoundFontMenuItem.setText("Load SoundFont");
                 loadSoundFontMenuItem.addActionListener(e -> loadSoundFontMenuItemActionPerformed(e));
-                runMenu.add(loadSoundFontMenuItem);
+                playerMenu.add(loadSoundFontMenuItem);
+                playerMenu.addSeparator();
 
                 //---- playDirectMenuItem ----
-                playDirectMenuItem.setText("Play with SoundFont");
+                playDirectMenuItem.setText("Play");
                 playDirectMenuItem.addActionListener(e -> playDirectMenuItemActionPerformed(e));
-                runMenu.add(playDirectMenuItem);
+                playerMenu.add(playDirectMenuItem);
 
                 //---- stopDirectMenuItem ----
                 stopDirectMenuItem.setText("Stop");
                 stopDirectMenuItem.addActionListener(e -> stopDirectMenuItemActionPerformed(e));
-                runMenu.add(stopDirectMenuItem);
+                playerMenu.add(stopDirectMenuItem);
+                playerMenu.addSeparator();
+
+                //---- forwardMenuItem ----
+                forwardMenuItem.setText("Forward");
+                forwardMenuItem.addActionListener(e -> forwardMenuItemActionPerformed(e));
+                playerMenu.add(forwardMenuItem);
+
+                //---- backwardMenuItem ----
+                backwardMenuItem.setText("Backward");
+                backwardMenuItem.addActionListener(e -> backwardMenuItemActionPerformed(e));
+                playerMenu.add(backwardMenuItem);
+                playerMenu.addSeparator();
+
+                //---- fastForwardMenuItem ----
+                fastForwardMenuItem.setText("Fast Forward");
+                fastForwardMenuItem.addActionListener(e -> fastForwardMenuItemActionPerformed(e));
+                playerMenu.add(fastForwardMenuItem);
+
+                //---- fastBackwardMenuItem ----
+                fastBackwardMenuItem.setText("Fast Backward");
+                fastBackwardMenuItem.addActionListener(e -> fastBackwardMenuItemActionPerformed(e));
+                playerMenu.add(fastBackwardMenuItem);
             }
-            menuBar1.add(runMenu);
+            menuBar1.add(playerMenu);
 
             //======== helpMenu ========
             {
@@ -1189,9 +1288,14 @@ public class GUI extends JFrame {
     private JMenu runMenu;
     private JMenuItem exportMidiMenuItem;
     private JMenuItem playMenuItem;
+    private JMenu playerMenu;
     private JMenuItem loadSoundFontMenuItem;
     private JMenuItem playDirectMenuItem;
     private JMenuItem stopDirectMenuItem;
+    private JMenuItem forwardMenuItem;
+    private JMenuItem backwardMenuItem;
+    private JMenuItem fastForwardMenuItem;
+    private JMenuItem fastBackwardMenuItem;
     private JMenu helpMenu;
     private JMenuItem InstruMenuItem;
     private JMenuItem TipsMenuItem;
