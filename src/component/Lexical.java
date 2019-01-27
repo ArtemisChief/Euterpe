@@ -387,7 +387,7 @@ public class Lexical {
                     }
 
                     //检查旋律中是否出现非法字符
-                    if (!isNote(inputWord.charAt(i)) && inputWord.charAt(i) != '(' && inputWord.charAt(i) != ')' && inputWord.charAt(i) != 'b' && inputWord.charAt(i) != '#') {
+                    if (!isNote(inputWord.charAt(i)) && inputWord.charAt(i) != '(' && inputWord.charAt(i) != ')' && inputWord.charAt(i) != 'b' && inputWord.charAt(i) != '#'&& inputWord.charAt(i) != '|') {
                         //出现非法字符时，将非法字符之前的字符分析
                         for (int j = 0; j < i; j++) {
                             Scanner(String.valueOf(inputWord.charAt(j)), false);
@@ -416,7 +416,7 @@ public class Lexical {
             }
         }
 
-        //如果输入字符串以各种括号开头，则将括号加入tokens中，继续分析剩余字符串
+        //如果输入字符串以各种括号或分隔符开头，则将括号加入tokens中，继续分析剩余字符串
         else if (inputWord.charAt(0) == '(') {
             syn = 7;
             tokens.add(new Token(syn, String.valueOf(inputWord.charAt(0)), count));
@@ -447,6 +447,11 @@ public class Lexical {
             tokens.add(new Token(syn, String.valueOf(inputWord.charAt(0)), count));
             if (inputWord.length() > 1)
                 Scanner(inputWord.substring(1), false);
+        }else if (inputWord.charAt(0) == '|') {
+                syn = 22;
+                tokens.add(new Token(syn, String.valueOf(inputWord.charAt(0)), count));
+                if (inputWord.length() > 1)
+                    Scanner(inputWord.substring(1), false);
         }
 
         //以<开头时，将输入字符串视为时长

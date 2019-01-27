@@ -83,6 +83,9 @@ public class Token {
             case 21:
                 type = "音量符号";
                 break;
+            case 22:
+                type = "同时音符分隔";
+                break;
             case 94:
                 type = "休止符";
                 break;
