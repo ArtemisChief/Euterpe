@@ -746,7 +746,7 @@ public class GUI extends JFrame {
             isLoadedMidiFile = true;
         }
 
-        if (midiPlayer.getIsRunning()) {
+        if (midiPlayer.getSequencer().isRunning()) {
             midiPlayer.pause();
             playDirectMenuItem.setText("Resume");
         } else {
@@ -760,11 +760,15 @@ public class GUI extends JFrame {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (midiPlayer.getIsRunning()) {
-                    if (hasSaved)
-                        outputTextPane.setText(midiPlayer.getGraphicPlayer(file.getName().substring(0, file.getName().indexOf(".mui"))));
-                    else
-                        outputTextPane.setText(midiPlayer.getGraphicPlayer("Unsaved Music"));
+                if (midiPlayer.getSequencer().isRunning()) {
+                    if (hasSaved) {
+                        midiPlayer.setTitle(file.getName().substring(0, file.getName().indexOf(".mui")));
+                        outputTextPane.setText(midiPlayer.getGraphicPlayer());
+                    }
+                    else {
+                        midiPlayer.setTitle("Untitled Song");
+                        outputTextPane.setText(midiPlayer.getGraphicPlayer());
+                    }
                 }
             }
         }, 0, 100);
@@ -784,10 +788,10 @@ public class GUI extends JFrame {
 
     //快进
     private void fastMove(int seconds) {
-        if (midiPlayer.getIsRunning()) {
-            long pos = midiPlayer.getMicrosecondPosition();
+        if (midiPlayer.getSequencer().isRunning()) {
+            long pos = midiPlayer.getSequencer().getMicrosecondPosition();
             pos += 1000000 * seconds;
-            midiPlayer.setMicrosecondPosition(pos);
+            midiPlayer.getSequencer().setMicrosecondPosition(pos);
         }
     }
 

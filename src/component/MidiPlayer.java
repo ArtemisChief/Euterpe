@@ -9,6 +9,7 @@ public class MidiPlayer {
     public Synthesizer synthesizer;
     public Sequencer sequencer;
     private long microsecondPosition;
+    private String title;
 
     public MidiPlayer() {
         try {
@@ -57,52 +58,28 @@ public class MidiPlayer {
         sequencer.stop();
     }
 
-    public long getMicrosecondPosition() {
-        return sequencer.getMicrosecondPosition();
-    }
-
-    public void setMicrosecondPosition(long microsecondPosition) {
-        sequencer.setMicrosecondPosition(microsecondPosition);
-    }
-
     public Sequencer getSequencer() {
         return sequencer;
     }
 
-    public boolean getIsRunning() {
-        return sequencer.isRunning();
-    }
+    public void setTitle(String title) {
+        title += " ]";
 
-    public String getGraphicPlayer(String name) {
-        name += " ]";
-
-        int count = 57 - name.length();
+        int count = 58 - title.length();
 
         for (int i = 0; i < count; i++) {
-            name += " ";
+            title += " ";
         }
 
-        return "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "============================================\n" +
-                "|\t\t\t\t\t\t  |\n" +
-                "| \t\t       Midi Player\t\t\t  |\n" +
-                "|\t\t\t\t\t\t  |\n" +
-                "|   [ Now Playing: " + name + "\t  |\n" +
-                "|   [ Time Line: " + getPlayTime() + " ]\t\t\t\t\t  |\n" +
-                "|\t\t\t\t\t\t  |\n" +
-                "|   ||" + getPlayLine() + "||\t  |\n" +
-                "|\t\t\t\t\t\t  |\n" +
-                "============================================";
+        this.title=title;
+    }
+
+    public String getGraphicPlayer() {
+        return "\n\n\n\n\n\n\n\n\n\n\n============================================\n|\t\t\t\t\t\t  |\n| \t\t       " +
+                "Midi Player\t\t\t  |\n|\t\t\t\t\t\t  |\n|   " +
+                "[ Now Playing: " + title + "\t  |\n|   " +
+                "[ Time Line: " + getPlayTime() + " ]\t\t\t\t\t  |\n|\t\t\t\t\t\t  |\n|   " +
+                "||" + getPlayLine() + "||\t  |\n|\t\t\t\t\t\t  |\n============================================";
     }
 
     private String getPlayTime() {
