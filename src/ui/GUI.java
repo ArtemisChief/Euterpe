@@ -4,10 +4,14 @@
 
 package ui;
 
-import component.*;
+import component.Lexical;
+import component.MidiPlayer;
+import component.Semantic;
+import component.Syntactic;
 import entity.interpreter.Node;
 import entity.interpreter.Token;
 import net.miginfocom.swing.MigLayout;
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -15,16 +19,10 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import javax.xml.crypto.Data;
 import java.awt.*;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.dnd.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
