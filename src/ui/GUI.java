@@ -10,6 +10,7 @@ import component.Semantic;
 import component.Syntactic;
 import entity.interpreter.Node;
 import entity.interpreter.Token;
+import javafx.util.Pair;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
@@ -22,7 +23,10 @@ import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.security.Key;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
@@ -60,13 +64,14 @@ public class GUI extends JFrame {
     private Semantic semantic;
     private MidiPlayer midiPlayer;
 
-    private String[] inputStack;
-    private int inputStackPointer;
-    private int inputStackUsedPointer = -1;
-    private int inputStackBottom;
-    private int inputStackTop = inputStackCapacity - 1;
-    private final static int inputStackCapacity = 101;
-    private int[] caretPosStack;
+    private class InputStatus{
+        int caretPos;
+        String inputString;
+    }
+
+    private List<InputStatus> inputStatusList;
+    private int inputStatusListMax;
+    private int inputStatusListIndex;
 
     private java.util.Timer timer;
 
@@ -94,9 +99,10 @@ public class GUI extends JFrame {
         keywordPattern = Pattern.compile("\\bspeed=|\\binstrument=|\\bvolume=|\\b1=");
         parenPattern = Pattern.compile("<(\\s*\\{?\\s*(1|2|4|8|g|w|\\*)+\\s*\\}?\\s*)+>");
 
-        //输入内容栈
-        inputStack = new String[inputStackCapacity];
-        caretPosStack = new int[inputStackCapacity];
+        //输入内容数组
+        inputStatusList=new ArrayList<>();
+        inputStatusListMax=-1;
+        inputStatusListIndex=0;
 
         //关闭窗口提示
         addWindowListener(new WindowAdapter() {
@@ -111,20 +117,19 @@ public class GUI extends JFrame {
         inputTextPane.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
-                if (e.isActionKey())
-                    return;
+                if (!e.isActionKey()) {
+                    if (e.getKeyCode() != KeyEvent.VK_BACK_SPACE)
+                        autoComplete();
 
-                if (e.getKeyCode() != KeyEvent.VK_BACK_SPACE)
-                    autoComplete();
-
-                refreshColor();
+                    refreshColor();
+                }
             }
+
 
             @Override
             public void keyPressed(KeyEvent e) {
-                //讲输入框文本存入栈
-                if (!e.isControlDown() && !e.isActionKey())
-                    inputStackPush();
+                if (!e.isControlDown() && e.getKeyCode() != KeyEvent.VK_CONTROL)
+                    saveInputStatus();
 
                 if (e.getKeyCode() == KeyEvent.VK_RIGHT)
                     forwardMenuItemActionPerformed(null);
@@ -147,7 +152,7 @@ public class GUI extends JFrame {
 
                 if (e.getKeyCode() == KeyEvent.VK_V)
                     if (e.isControlDown())
-                        inputStackPush();
+                        saveInputStatus();
 
                 if (e.getKeyCode() == KeyEvent.VK_S)
                     if (e.isControlDown())
@@ -160,8 +165,6 @@ public class GUI extends JFrame {
                 if (e.getKeyCode() == KeyEvent.VK_Y)
                     if (e.isControlDown())
                         redo();
-
-//                System.out.println("stack: " + inputStack.toString() + "\nbottom: " + inputStackBottom + "\npointer: " + inputStackPointer+"\ntop: "+inputStackTop+"\nused: "+inputStackUsedPointer);
             }
         });
 
@@ -178,9 +181,7 @@ public class GUI extends JFrame {
             }
 
             @Override
-            public void changedUpdate(DocumentEvent e) {
-//                contentChanged();
-            }
+            public void changedUpdate(DocumentEvent e) {}
         });
 
         //组件实例化
@@ -208,48 +209,38 @@ public class GUI extends JFrame {
         });
     }
 
-    //输入栈入栈
-    private void inputStackPush() {
-        inputStack[inputStackPointer % inputStackCapacity] = inputTextPane.getText();
-        caretPosStack[inputStackPointer % inputStackCapacity] = inputTextPane.getCaretPosition();
-        inputStackPointer++;
-        inputStackUsedPointer++;
-
-        if (inputStackPointer > inputStackTop - 1) {
-            inputStackTop++;
-            inputStackBottom++;
-        }
-    }
-
-    //输入栈出栈
-    private String inputStackPop() {
-        if (inputStackPointer > inputStackBottom) {
-            int p = --inputStackPointer;
-            if (p > -1)
-                return inputStack[p % inputStackCapacity];
-        }
-        return null;
+    //将输入状态入栈
+    private void saveInputStatus() {
+        InputStatus inputStatus = new InputStatus();
+        inputStatus.caretPos = inputTextPane.getCaretPosition();
+        inputStatus.inputString = inputTextPane.getText();
+        inputStatusList.add(inputStatusListIndex,inputStatus);
+        inputStatusListMax=inputStatusListIndex;
+        inputStatusListIndex++;
     }
 
     //撤销(undo)
     private void undo() {
-        String text = inputStackPop();
-        if (text != null) {
-            if (inputStackPointer == inputStackUsedPointer) {
-                inputStack[(inputStackUsedPointer + 1) % inputStackCapacity] = inputTextPane.getText();
-                caretPosStack[(inputStackUsedPointer + 1) % inputStackCapacity] = inputTextPane.getCaretPosition();
+        if(inputStatusListIndex==inputStatusListMax+1)
+            if (!inputStatusList.get(inputStatusListIndex - 1).inputString.equals(inputStatusList.get(inputStatusListIndex - 2))) {
+                saveInputStatus();
+                inputStatusListIndex--;
             }
-            inputTextPane.setText(text);
-            inputTextPane.setCaretPosition(caretPosStack[inputStackPointer % inputStackCapacity]);
+
+        if (inputStatusListIndex>0) {
+            InputStatus inputStatus=inputStatusList.get(--inputStatusListIndex);
+            inputTextPane.setText(inputStatus.inputString);
+            inputTextPane.setCaretPosition(inputStatus.caretPos);
             refreshColor();
         }
     }
 
     //重做(redo)
     private void redo() {
-        if (inputStackPointer < inputStackUsedPointer + 1) {
-            inputTextPane.setText(inputStack[++inputStackPointer % inputStackCapacity]);
-            inputTextPane.setCaretPosition(caretPosStack[inputStackPointer % inputStackCapacity]);
+        if(inputStatusListIndex<inputStatusListMax){
+            InputStatus inputStatus=inputStatusList.get(++inputStatusListIndex);
+            inputTextPane.setText(inputStatus.inputString);
+            inputTextPane.setCaretPosition(inputStatus.caretPos);
             refreshColor();
         }
     }
@@ -413,7 +404,7 @@ public class GUI extends JFrame {
             hasChanged = false;
             isLoadedMidiFile = false;
             this.setTitle("Music Interpreter - New Empty File");
-            inputStackPush();
+            saveInputStatus();
         }
     }
 
@@ -472,7 +463,7 @@ public class GUI extends JFrame {
             hasChanged = false;
             isLoadedMidiFile = false;
             this.setTitle("Music Interpreter - New Template File");
-            inputStackPush();
+            saveInputStatus();
         }
     }
 
@@ -507,7 +498,7 @@ public class GUI extends JFrame {
             stopDirectMenuItemActionPerformed(null);
             isLoadedMidiFile = false;
             this.setTitle("Music Interpreter - " + file.getName());
-            inputStackPush();
+            saveInputStatus();
         } catch (FileNotFoundException e1) {
 //            e1.printStackTrace();
         } catch (IOException e1) {
@@ -918,7 +909,7 @@ public class GUI extends JFrame {
 
             this.setTitle("Music Interpreter - Demo");
             tipsMenuItemActionPerformed(null);
-            inputStackPush();
+            saveInputStatus();
         }
     }
 
