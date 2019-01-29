@@ -165,14 +165,14 @@ new FormModel {
 					name: "helpMenu"
 					"text": "Help"
 					add( new FormComponent( "javax.swing.JMenuItem" ) {
-						name: "InstruMenuItem"
+						name: "instruMenuItem"
 						"text": "Instruments"
-						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "InstruMenuItemActionPerformed", true ) )
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "instruMenuItemActionPerformed", true ) )
 					} )
 					add( new FormComponent( "javax.swing.JMenuItem" ) {
-						name: "TipsMenuItem"
+						name: "tipsMenuItem"
 						"text": "Tips"
-						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "TipsMenuItemActionPerformed", true ) )
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "tipsMenuItemActionPerformed", true ) )
 					} )
 					add( new FormComponent( "javax.swing.JMenuItem" ) {
 						name: "demoMenuItem"

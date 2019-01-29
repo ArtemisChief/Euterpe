@@ -8,8 +8,6 @@ import java.util.List;
 
 public class MidiTrack {
 
-    private float bpm;
-
     private int byteCount;
 
     private byte[] midiTrackData;
@@ -24,13 +22,18 @@ public class MidiTrack {
 
     public MidiTrack() {
         midiTrackData = TRACK_HEADER;
-        midiTrackContentData=new byte[0];
+        midiTrackContentData = new byte[0];
         midiEvents = new ArrayList<>();
         byteCount = 0;
     }
 
     public void setBpm(float bpm) {
-        this.bpm = bpm;
+        int microsecondPreNote = MidiUtil.bpmToMpt(bpm);
+        byte[] tempo = new byte[]{0x00, (byte) 0xFF, 0x51, 0x03};
+        tempo = MidiUtil.mergeByte(tempo, MidiUtil.intToBytes(microsecondPreNote, 3));
+
+        byteCount += 7;
+        midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, tempo);
     }
 
     public void setDuration(Integer duration) {
@@ -115,19 +118,15 @@ public class MidiTrack {
     }
 
     public void setEnd() {
-        int microsecondPreNote = MidiUtil.bpmToMpt(bpm);
-        byte[] tempo = new byte[]{0x00, (byte) 0xFF, 0x51, 0x03};
-        tempo = MidiUtil.mergeByte(tempo, MidiUtil.intToBytes(microsecondPreNote, 3));
-
-        byteCount += 11;
+        byteCount += 4;
         midiTrackData = MidiUtil.mergeByte(midiTrackData, MidiUtil.intToBytes(byteCount, 4));
-        midiTrackData = MidiUtil.mergeByte(midiTrackData, tempo);
-
-        for (MidiEvent midiEvent : midiEvents)
-            midiTrackData = MidiUtil.mergeByte(midiTrackData, midiEvent.getMidiEventData());
         midiTrackData = MidiUtil.mergeByte(midiTrackData, midiTrackContentData);
-
         midiTrackData = MidiUtil.mergeByte(midiTrackData, END_TRACK);
+    }
+
+    public void merge(MidiTrack midiTrack) {
+        this.byteCount += midiTrack.byteCount;
+        this.midiTrackContentData = MidiUtil.mergeByte(this.midiTrackContentData, midiTrack.midiTrackContentData);
     }
 
     public byte[] getMidiTrackData() {

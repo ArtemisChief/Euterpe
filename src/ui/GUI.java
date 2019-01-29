@@ -64,10 +64,10 @@ public class GUI extends JFrame {
 
     private String[] inputStack;
     private int inputStackPointer;
-    private int inputStackUsedPointer=-1;
+    private int inputStackUsedPointer = -1;
     private int inputStackBottom;
-    private int inputStackTop=inputStackCapacity-1;
-    private final static int inputStackCapacity=101;
+    private int inputStackTop = inputStackCapacity - 1;
+    private final static int inputStackCapacity = 101;
     private int[] caretPosStack;
 
     private java.util.Timer timer;
@@ -97,8 +97,8 @@ public class GUI extends JFrame {
         parenPattern = Pattern.compile("<(\\s*\\{?\\s*(1|2|4|8|g|w|\\*)+\\s*\\}?\\s*)+>");
 
         //输入内容栈
-        inputStack=new String[inputStackCapacity];
-        caretPosStack=new int[inputStackCapacity];
+        inputStack = new String[inputStackCapacity];
+        caretPosStack = new int[inputStackCapacity];
 
         //关闭窗口提示
         addWindowListener(new WindowAdapter() {
@@ -125,13 +125,13 @@ public class GUI extends JFrame {
             @Override
             public void keyPressed(KeyEvent e) {
                 //讲输入框文本存入栈
-                if (!e.isControlDown())
+                if (!e.isControlDown() && !e.isActionKey())
                     inputStackPush();
 
-                if(e.getKeyCode() ==KeyEvent.VK_RIGHT)
+                if (e.getKeyCode() == KeyEvent.VK_RIGHT)
                     forwardMenuItemActionPerformed(null);
 
-                if(e.getKeyCode() ==KeyEvent.VK_LEFT)
+                if (e.getKeyCode() == KeyEvent.VK_LEFT)
                     backwardMenuItemActionPerformed(null);
 
                 if (e.getKeyCode() == KeyEvent.VK_RIGHT)
@@ -200,7 +200,7 @@ public class GUI extends JFrame {
         lineTextArea.setText(lineStr);
         scrollPane1.getVerticalScrollBar().addAdjustmentListener(e -> scrollPane3.getVerticalScrollBar().setValue(scrollPane1.getVerticalScrollBar().getValue()));
 
-        TipsMenuItemActionPerformed(null);
+        tipsMenuItemActionPerformed(null);
 
         //播放完成事件
         midiPlayer.getSequencer().addMetaEventListener(meta -> {
@@ -249,7 +249,7 @@ public class GUI extends JFrame {
 
     //重做(redo)
     private void redo() {
-        if (inputStackPointer < inputStackUsedPointer+1) {
+        if (inputStackPointer < inputStackUsedPointer + 1) {
             inputTextPane.setText(inputStack[++inputStackPointer % inputStackCapacity]);
             inputTextPane.setCaretPosition(caretPosStack[inputStackPointer % inputStackCapacity]);
             refreshColor();
@@ -415,6 +415,7 @@ public class GUI extends JFrame {
             hasChanged = false;
             isLoadedMidiFile = false;
             this.setTitle("Music Interpreter - New Empty File");
+            inputStackPush();
         }
     }
 
@@ -473,6 +474,7 @@ public class GUI extends JFrame {
             hasChanged = false;
             isLoadedMidiFile = false;
             this.setTitle("Music Interpreter - New Template File");
+            inputStackPush();
         }
     }
 
@@ -507,6 +509,7 @@ public class GUI extends JFrame {
             stopDirectMenuItemActionPerformed(null);
             isLoadedMidiFile = false;
             this.setTitle("Music Interpreter - " + file.getName());
+            inputStackPush();
         } catch (FileNotFoundException e1) {
 //            e1.printStackTrace();
         } catch (IOException e1) {
@@ -646,7 +649,7 @@ public class GUI extends JFrame {
     }
 
     //执行解释过程
-    private boolean runInterpret(){
+    private boolean runInterpret() {
         StringBuilder stringBuilder = new StringBuilder();
 
         if (inputTextPane.getText().isEmpty())
@@ -674,7 +677,7 @@ public class GUI extends JFrame {
 
     //导出Midi文件
     private void generateMidiMenuItemActionPerformed(ActionEvent e) {
-        if(!runInterpret())
+        if (!runInterpret())
             return;
 
         JFileChooser fileChooser = new JFileChooser();
@@ -696,7 +699,7 @@ public class GUI extends JFrame {
 
     //生成临时Midi文件
     private boolean generateTempMidiFile() {
-        if(!runInterpret())
+        if (!runInterpret())
             return false;
 
         if (tempMidiFile == null) {
@@ -721,6 +724,14 @@ public class GUI extends JFrame {
         } catch (IOException e1) {
             e1.printStackTrace();
         }
+    }
+
+    //禁用使用右侧输出内容的按钮
+    private void forbidOutputButton(boolean flag) {
+        instruMenuItem.setEnabled(!flag);
+        tipsMenuItem.setEnabled(!flag);
+        aboutMenuItem.setEnabled(!flag);
+        demoMenuItem.setEnabled(!flag);
     }
 
     //读取SoundFont
@@ -749,9 +760,11 @@ public class GUI extends JFrame {
         if (midiPlayer.getSequencer().isRunning()) {
             midiPlayer.pause();
             playDirectMenuItem.setText("Resume");
+            forbidOutputButton(false);
         } else {
             midiPlayer.play();
             playDirectMenuItem.setText("Pause");
+            forbidOutputButton(true);
         }
 
         if (timer == null)
@@ -764,8 +777,7 @@ public class GUI extends JFrame {
                     if (hasSaved) {
                         midiPlayer.setTitle(file.getName().substring(0, file.getName().indexOf(".mui")));
                         outputTextPane.setText(midiPlayer.getGraphicPlayer());
-                    }
-                    else {
+                    } else {
                         midiPlayer.setTitle("Untitled Song");
                         outputTextPane.setText(midiPlayer.getGraphicPlayer());
                     }
@@ -784,6 +796,7 @@ public class GUI extends JFrame {
 
         playDirectMenuItem.setText("Play");
         midiPlayer.stop();
+        forbidOutputButton(false);
     }
 
     //快进
@@ -856,59 +869,63 @@ public class GUI extends JFrame {
 
     //展示Demo
     private void demoMenuItemActionPerformed(ActionEvent e) {
-        if (!showSaveComfirm("Exist unsaved content, save before open the demo?"))
-            return;
+        if (showSaveComfirm("Exist unsaved content, save before open the demo?")) {
+            hasSaved = false;
 
-        String str = "/*\n" +
-                " 欢乐颂\n" +
-                " 女高音 + 女中音\n" +
-                " 双声部 Version\n" +
-                " */\n" +
-                "\n" +
-                "//女高音\n" +
-                "paragraph soprano\n" +
-                "instrument= 0\n" +
-                "volume= 127\n" +
-                "speed= 140\n" +
-                "1= D\n" +
-                "3345 5432 <4444 4444>\n" +
-                "1123 322 <4444 4*82>\n" +
-                "3345 5432 <4444 4444>\n" +
-                "1123 211 <4444 4*82>\n" +
-                "2231 23431 <4444 4{88}44>\n" +
-                "23432 12(5) <4{88}44 {44}4>\n" +
-                "33345 54342 <{44}444 44{48}8>\n" +
-                "1123 211 <4444 4*82>\n" +
-                "end\n" +
-                "\n" +
-                "//女中音\n" +
-                "paragraph alto\n" +
-                "instrument= 0\n" +
-                "volume= 110\n" +
-                "speed= 140\n" +
-                "1= D\n" +
-                "1123 321(5) <4444 4444>\n" +
-                "(3555) 1(77) <4444 4*82>\n" +
-                "1123 321(5) <4444 4444>\n" +
-                "(3555) (533) <4444 4*82>\n" +
-                "(77)1(5) (77)1(5) <4444 4444>\n" +
-                "(7#5#5#56#45) <4444 {44}4>\n" +
-                "11123 3211(5) <{44}444 44{48}8>\n" +
-                "(3555 533) <4444 4*82>\n" +
-                "end\n" +
-                "\n" +
-                "//双声部同时播放\n" +
-                "play(soprano&alto)";
-        inputTextPane.setText(str);
-        inputTextPane.setCaretPosition(0);
-        refreshColor();
-        hasChanged = false;
-        this.setTitle("Music Interpreter - Demo");
-        TipsMenuItemActionPerformed(null);
+            String str = "/*\n" +
+                    " 欢乐颂\n" +
+                    " 女高音 + 女中音\n" +
+                    " 双声部 Version\n" +
+                    " */\n" +
+                    "\n" +
+                    "//女高音\n" +
+                    "paragraph soprano\n" +
+                    "instrument= 0\n" +
+                    "volume= 127\n" +
+                    "speed= 140\n" +
+                    "1= D\n" +
+                    "3345 5432 <4444 4444>\n" +
+                    "1123 322 <4444 4*82>\n" +
+                    "3345 5432 <4444 4444>\n" +
+                    "1123 211 <4444 4*82>\n" +
+                    "2231 23431 <4444 4{88}44>\n" +
+                    "23432 12(5) <4{88}44 {44}4>\n" +
+                    "33345 54342 <{44}444 44{48}8>\n" +
+                    "1123 211 <4444 4*82>\n" +
+                    "end\n" +
+                    "\n" +
+                    "//女中音\n" +
+                    "paragraph alto\n" +
+                    "instrument= 0\n" +
+                    "volume= 110\n" +
+                    "speed= 140\n" +
+                    "1= D\n" +
+                    "1123 321(5) <4444 4444>\n" +
+                    "(3555) 1(77) <4444 4*82>\n" +
+                    "1123 321(5) <4444 4444>\n" +
+                    "(3555) (533) <4444 4*82>\n" +
+                    "(77)1(5) (77)1(5) <4444 4444>\n" +
+                    "(7#5#5#56#45) <4444 {44}4>\n" +
+                    "11123 3211(5) <{44}444 44{48}8>\n" +
+                    "(3555 533) <4444 4*82>\n" +
+                    "end\n" +
+                    "\n" +
+                    "//双声部同时播放\n" +
+                    "play(soprano&alto)";
+            inputTextPane.setText(str);
+            inputTextPane.setCaretPosition(0);
+            refreshColor();
+            hasChanged = false;
+            isLoadedMidiFile = false;
+
+            this.setTitle("Music Interpreter - Demo");
+            tipsMenuItemActionPerformed(null);
+            inputStackPush();
+        }
     }
 
     //显示提示
-    private void TipsMenuItemActionPerformed(ActionEvent e) {
+    private void tipsMenuItemActionPerformed(ActionEvent e) {
         String str = "============================================\n" +
                 "                                                  Tips\n" +
                 "-------------------------------------------------------------------------\n" +
@@ -944,7 +961,7 @@ public class GUI extends JFrame {
     }
 
     //显示乐器列表
-    private void InstruMenuItemActionPerformed(ActionEvent e) {
+    private void instruMenuItemActionPerformed(ActionEvent e) {
         String str = "===========================================\n" +
                 "                                            Instrument\n" +
                 "-----------------------------------------------------------------------\n" +
@@ -1046,7 +1063,6 @@ public class GUI extends JFrame {
     }
 
 
-
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         menuBar1 = new JMenuBar();
@@ -1072,8 +1088,8 @@ public class GUI extends JFrame {
         fastForwardMenuItem = new JMenuItem();
         fastBackwardMenuItem = new JMenuItem();
         helpMenu = new JMenu();
-        InstruMenuItem = new JMenuItem();
-        TipsMenuItem = new JMenuItem();
+        instruMenuItem = new JMenuItem();
+        tipsMenuItem = new JMenuItem();
         demoMenuItem = new JMenuItem();
         aboutMenuItem = new JMenuItem();
         panel1 = new JPanel();
@@ -1197,15 +1213,15 @@ public class GUI extends JFrame {
             {
                 helpMenu.setText("Help");
 
-                //---- InstruMenuItem ----
-                InstruMenuItem.setText("Instruments");
-                InstruMenuItem.addActionListener(e -> InstruMenuItemActionPerformed(e));
-                helpMenu.add(InstruMenuItem);
+                //---- instruMenuItem ----
+                instruMenuItem.setText("Instruments");
+                instruMenuItem.addActionListener(e -> instruMenuItemActionPerformed(e));
+                helpMenu.add(instruMenuItem);
 
-                //---- TipsMenuItem ----
-                TipsMenuItem.setText("Tips");
-                TipsMenuItem.addActionListener(e -> TipsMenuItemActionPerformed(e));
-                helpMenu.add(TipsMenuItem);
+                //---- tipsMenuItem ----
+                tipsMenuItem.setText("Tips");
+                tipsMenuItem.addActionListener(e -> tipsMenuItemActionPerformed(e));
+                helpMenu.add(tipsMenuItem);
 
                 //---- demoMenuItem ----
                 demoMenuItem.setText("Demo");
@@ -1301,8 +1317,8 @@ public class GUI extends JFrame {
     private JMenuItem fastForwardMenuItem;
     private JMenuItem fastBackwardMenuItem;
     private JMenu helpMenu;
-    private JMenuItem InstruMenuItem;
-    private JMenuItem TipsMenuItem;
+    private JMenuItem instruMenuItem;
+    private JMenuItem tipsMenuItem;
     private JMenuItem demoMenuItem;
     private JMenuItem aboutMenuItem;
     private JPanel panel1;

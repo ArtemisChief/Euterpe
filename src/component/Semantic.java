@@ -4,6 +4,7 @@ import entity.midi.MidiFile;
 import entity.midi.MidiTrack;
 import entity.interpreter.Node;
 import entity.interpreter.Paragraph;
+import javafx.util.Pair;
 
 import java.util.*;
 
@@ -76,7 +77,7 @@ public class Semantic {
 
                 case "instrument":
                     if (child.getChild(0).getContent().length() < 4 && Integer.parseInt(child.getChild(0).getContent()) >= 0 && Integer.parseInt(child.getChild(0).getContent()) < 128) {
-                        paragraph.setInstrument(Integer.parseInt(child.getChild(0).getContent()));
+                        paragraph.setInstrument(Byte.parseByte(child.getChild(0).getContent()));
                     } else {
                         errorInfo.append("Line: " + child.getChild(0).getLine() + "\t乐器声明超出范围（0-127）\n");
                         errorLines.add(child.getChild(0).getLine());
@@ -85,7 +86,7 @@ public class Semantic {
 
                 case "volume":
                     if (child.getChild(0).getContent().length() < 4 && Integer.parseInt(child.getChild(0).getContent()) >= 0 && Integer.parseInt(child.getChild(0).getContent()) < 128) {
-                        paragraph.setVolume(Integer.parseInt(child.getChild(0).getContent()));
+                        paragraph.setVolume(Byte.parseByte(child.getChild(0).getContent()));
                     } else {
                         errorInfo.append("Line: " + child.getChild(0).getLine() + "\t音量声明超出范围（0-127）\n");
                         errorLines.add(child.getChild(0).getLine());
@@ -158,6 +159,9 @@ public class Semantic {
                             case "]":
                                 toneOffset -= 12;
                                 break;
+                            case "|":
+                                noteList.add(-1);
+                                break;
                             case "#":
                                 haftToneOffset = 1;
                                 break;
@@ -213,8 +217,10 @@ public class Semantic {
                     for (Node rhythm : child.getChildren()) {
                         switch (rhythm.getContent()) {
                             case "{":
+                                durationList.add(-1);
                                 break;
                             case "}":
+                                durationList.add(-2);
                                 break;
                             case "1":
                                 lineRhythmCount++;
@@ -277,40 +283,26 @@ public class Semantic {
 
                 case "playlist":
                     String paraName = "";
+                    int index = 0;
                     int totalDuration = 0;
-                    boolean andOp = false;
 
                     for (Node playList : child.getChildren()) {
                         switch (playList.getContent()) {
                             case "&":
-                                andOp = true;
+                                index++;
                                 break;
 
                             case ",":
                                 if (!paragraphMap.containsKey(paraName))
                                     break;
 
-                                if (!andOp) {
-                                    Paragraph originPara = paragraphMap.get(paraName);
-                                    Paragraph tempPara = new Paragraph();
-
-                                    tempPara.setDurationList(originPara.getDurationList());
-                                    tempPara.setSpeed(originPara.getSpeed());
-
-                                    List<Integer> tempNotes = originPara.getNoteList();
-                                    for (int i = 0; i < tempNotes.size(); i++) {
-                                        tempNotes.set(i, tempNotes.get(i) - 12);
-                                    }
-                                    tempPara.setNoteList(tempNotes);
-                                    constuctMidiTrack(tempPara, totalDuration);
-                                }
+                                index = 0;
 
                                 List<Integer> duration = paragraphMap.get(paraName).getDurationList();
 
                                 for (int dura : duration)
                                     totalDuration += dura;
 
-                                andOp = false;
                                 break;
 
                             default:
@@ -322,38 +314,30 @@ public class Semantic {
                                     break;
                                 }
 
-                                constuctMidiTrack(paragraphMap.get(paraName), totalDuration);
+                                MidiTrack midiTrack;
+
+                                if (index > midiTracks.size() - 1) {
+                                    midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), totalDuration);
+                                    midiTracks.add(midiTrack);
+                                } else {
+                                    midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), 0);
+                                    midiTracks.get(index).merge(midiTrack);
+                                }
+
                                 break;
                         }
                     }
 
-                    if (!andOp) {
-                        if (!paragraphMap.containsKey(paraName))
-                            break;
-
-                        Paragraph originPara = paragraphMap.get(paraName);
-                        Paragraph tempPara = new Paragraph();
-
-                        tempPara.setDurationList(originPara.getDurationList());
-                        tempPara.setSpeed(originPara.getSpeed());
-
-                        List<Integer> tempNotes = originPara.getNoteList();
-                        for (int i = 0; i < tempNotes.size(); i++) {
-                            tempNotes.set(i, tempNotes.get(i) - 12);
-                        }
-                        tempPara.setNoteList(tempNotes);
-                        constuctMidiTrack(tempPara, totalDuration);
+                    for(MidiTrack midiTrack:midiTracks){
+                        midiTrack.setEnd();
                     }
-
-                    break;
             }
         }
     }
 
-    private void constuctMidiTrack(Paragraph paragraph, int duration) {
-
+    private MidiTrack constuctMidiTrackPart(Paragraph paragraph,int duration){
         if (getIsError())
-            return;
+            return null;
 
         MidiTrack midiTrack = new MidiTrack();
         midiTrack.setBpm(paragraph.getSpeed());
@@ -372,17 +356,16 @@ public class Semantic {
             midiTrack.insertNote(channel, noteList.get(i), durationList.get(i));
         }
 
-        midiTrack.setEnd();
+//        channel：同一个Track上channel不同五线谱表示上画为两谱线轨道
+//        channel++;
+//
+//        if (channel == 9)
+//            channel++;
+//
+//        if (channel > 15)
+//            channel = 0;
 
-        midiTracks.add(midiTrack);
-
-        channel++;
-
-        if (channel == 9)
-            channel++;
-
-        if (channel > 15)
-            channel = 0;
+        return midiTrack;
     }
 
     public boolean getIsError() {

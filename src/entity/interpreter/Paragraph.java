@@ -1,29 +1,35 @@
 package entity.interpreter;
 
+import javafx.util.Pair;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class Paragraph {
 
     private Float Speed;
-    private int volume;
-    private int instrument;
-    private List<Integer> NoteList;
-    private List<Integer> DurationList;
+    private byte volume;
+    private byte instrument;
+    private List<Integer> noteList;
+    private List<Integer> durationList;
+    private int noteOffset;
+    private int durationOffset;
 
     public Paragraph() {
         Speed = 0.0F;
         instrument = 0;
         volume = 0;
-        NoteList = new ArrayList<>();
-        DurationList = new ArrayList<>();
+        noteList = new ArrayList<>();
+        durationList = new ArrayList<>();
+        noteOffset=0;
+        durationOffset=0;
     }
 
     public int getVolume() {
         return volume;
     }
 
-    public void setVolume(int volume) {
+    public void setVolume(byte volume) {
         this.volume = volume;
     }
 
@@ -31,7 +37,7 @@ public class Paragraph {
         return instrument;
     }
 
-    public void setInstrument(int instrument) {
+    public void setInstrument(byte instrument) {
         this.instrument = instrument;
     }
 
@@ -44,19 +50,34 @@ public class Paragraph {
     }
 
     public List<Integer> getNoteList() {
-        return NoteList;
+        return noteList;
     }
 
     public void setNoteList(List<Integer> noteList) {
-        NoteList = noteList;
+        this.noteList = noteList;
     }
 
     public List<Integer> getDurationList() {
-        return DurationList;
+        return durationList;
     }
 
     public void setDurationList(List<Integer> durationList) {
-        DurationList = durationList;
+        this.durationList = durationList;
     }
 
+    public int getNoteOffset() {
+        return noteOffset;
+    }
+
+    public void setNoteOffset(int noteOffset) {
+        this.noteOffset = noteOffset;
+    }
+
+    public int getDurationOffset() {
+        return durationOffset;
+    }
+
+    public void setDurationOffset(int durationOffset) {
+        this.durationOffset = durationOffset;
+    }
 }
