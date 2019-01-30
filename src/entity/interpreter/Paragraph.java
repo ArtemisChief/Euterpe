@@ -2,8 +2,7 @@ package entity.interpreter;
 
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Paragraph {
 
@@ -12,8 +11,14 @@ public class Paragraph {
     private byte instrument;
     private List<Integer> noteList;
     private List<Integer> durationList;
-    private int noteOffset;
-    private int durationOffset;
+    private Queue<Pair<Integer, Integer>> symbolQueue;
+
+    /**
+     * 符号队列表
+     * 0    同时音符
+     * 1    连音左括号
+     * 2    连音右括号
+     */
 
     public Paragraph() {
         Speed = 0.0F;
@@ -21,11 +26,10 @@ public class Paragraph {
         volume = 0;
         noteList = new ArrayList<>();
         durationList = new ArrayList<>();
-        noteOffset=0;
-        durationOffset=0;
+        symbolQueue = new PriorityQueue<>(Comparator.comparingInt(Pair::getValue));
     }
 
-    public int getVolume() {
+    public byte getVolume() {
         return volume;
     }
 
@@ -33,7 +37,7 @@ public class Paragraph {
         this.volume = volume;
     }
 
-    public int getInstrument() {
+    public byte getInstrument() {
         return instrument;
     }
 
@@ -53,31 +57,11 @@ public class Paragraph {
         return noteList;
     }
 
-    public void setNoteList(List<Integer> noteList) {
-        this.noteList = noteList;
-    }
-
     public List<Integer> getDurationList() {
         return durationList;
     }
 
-    public void setDurationList(List<Integer> durationList) {
-        this.durationList = durationList;
-    }
-
-    public int getNoteOffset() {
-        return noteOffset;
-    }
-
-    public void setNoteOffset(int noteOffset) {
-        this.noteOffset = noteOffset;
-    }
-
-    public int getDurationOffset() {
-        return durationOffset;
-    }
-
-    public void setDurationOffset(int durationOffset) {
-        this.durationOffset = durationOffset;
+    public Queue<Pair<Integer, Integer>> getSymbolQueue() {
+        return symbolQueue;
     }
 }

@@ -10,7 +10,6 @@ import component.Semantic;
 import component.Syntactic;
 import entity.interpreter.Node;
 import entity.interpreter.Token;
-import javafx.util.Pair;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
@@ -23,12 +22,9 @@ import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.security.Key;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Stack;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,7 +60,7 @@ public class GUI extends JFrame {
     private Semantic semantic;
     private MidiPlayer midiPlayer;
 
-    private class InputStatus{
+    private class InputStatus {
         int caretPos;
         String inputString;
     }
@@ -100,9 +96,9 @@ public class GUI extends JFrame {
         parenPattern = Pattern.compile("<(\\s*\\{?\\s*(1|2|4|8|g|w|\\*)+\\s*\\}?\\s*)+>");
 
         //输入内容数组
-        inputStatusList=new ArrayList<>();
-        inputStatusListMax=-1;
-        inputStatusListIndex=0;
+        inputStatusList = new ArrayList<>();
+        inputStatusListMax = -1;
+        inputStatusListIndex = 0;
 
         //关闭窗口提示
         addWindowListener(new WindowAdapter() {
@@ -181,7 +177,8 @@ public class GUI extends JFrame {
             }
 
             @Override
-            public void changedUpdate(DocumentEvent e) {}
+            public void changedUpdate(DocumentEvent e) {
+            }
         });
 
         //组件实例化
@@ -214,21 +211,21 @@ public class GUI extends JFrame {
         InputStatus inputStatus = new InputStatus();
         inputStatus.caretPos = inputTextPane.getCaretPosition();
         inputStatus.inputString = inputTextPane.getText();
-        inputStatusList.add(inputStatusListIndex,inputStatus);
-        inputStatusListMax=inputStatusListIndex;
+        inputStatusList.add(inputStatusListIndex, inputStatus);
+        inputStatusListMax = inputStatusListIndex;
         inputStatusListIndex++;
     }
 
     //撤销(undo)
     private void undo() {
-        if(inputStatusListIndex==inputStatusListMax+1)
+        if (inputStatusListIndex == inputStatusListMax + 1)
             if (!inputStatusList.get(inputStatusListIndex - 1).inputString.equals(inputStatusList.get(inputStatusListIndex - 2))) {
                 saveInputStatus();
                 inputStatusListIndex--;
             }
 
-        if (inputStatusListIndex>0) {
-            InputStatus inputStatus=inputStatusList.get(--inputStatusListIndex);
+        if (inputStatusListIndex > 0) {
+            InputStatus inputStatus = inputStatusList.get(--inputStatusListIndex);
             inputTextPane.setText(inputStatus.inputString);
             inputTextPane.setCaretPosition(inputStatus.caretPos);
             refreshColor();
@@ -237,8 +234,8 @@ public class GUI extends JFrame {
 
     //重做(redo)
     private void redo() {
-        if(inputStatusListIndex<inputStatusListMax){
-            InputStatus inputStatus=inputStatusList.get(++inputStatusListIndex);
+        if (inputStatusListIndex < inputStatusListMax) {
+            InputStatus inputStatus = inputStatusList.get(++inputStatusListIndex);
             inputTextPane.setText(inputStatus.inputString);
             inputTextPane.setCaretPosition(inputStatus.caretPos);
             refreshColor();
@@ -1229,13 +1226,13 @@ public class GUI extends JFrame {
         //======== panel1 ========
         {
             panel1.setLayout(new MigLayout(
-                "insets 0,hidemode 3",
-                // columns
-                "[fill]0" +
-                "[400:400:875,grow,fill]0" +
-                "[460:460:1005,grow,fill]",
-                // rows
-                "[fill]"));
+                    "insets 0,hidemode 3",
+                    // columns
+                    "[fill]0" +
+                            "[400:400:875,grow,fill]0" +
+                            "[460:460:1005,grow,fill]",
+                    // rows
+                    "[fill]"));
 
             //======== scrollPane3 ========
             {

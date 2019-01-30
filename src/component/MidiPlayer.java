@@ -71,7 +71,7 @@ public class MidiPlayer {
             title += " ";
         }
 
-        this.title=title;
+        this.title = title;
     }
 
     public String getGraphicPlayer() {
@@ -111,7 +111,7 @@ public class MidiPlayer {
 
         count = 65 - count;
 
-        for (int i = 0; i < count-1; i++)
+        for (int i = 0; i < count - 1; i++)
             out.append("-");
 
         return out.toString();

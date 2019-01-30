@@ -1,9 +1,10 @@
 package component;
 
+import entity.interpreter.Node;
+import entity.interpreter.Note;
+import entity.interpreter.Paragraph;
 import entity.midi.MidiFile;
 import entity.midi.MidiTrack;
-import entity.interpreter.Node;
-import entity.interpreter.Paragraph;
 import javafx.util.Pair;
 
 import java.util.*;
@@ -22,7 +23,7 @@ public class Semantic {
 
     private MidiFile midiFile;
     private List<MidiTrack> midiTracks;
-    private int channel;
+    private byte channel;
 
     public String ConvertToMidi(Node abstractSyntaxTree) {
         AbstractSyntaxTree = abstractSyntaxTree;
@@ -160,7 +161,7 @@ public class Semantic {
                                 toneOffset -= 12;
                                 break;
                             case "|":
-                                noteList.add(-1);
+                                paragraph.getSymbolQueue().offer(new Pair<>(0, noteList.size()));
                                 break;
                             case "#":
                                 haftToneOffset = 1;
@@ -217,10 +218,10 @@ public class Semantic {
                     for (Node rhythm : child.getChildren()) {
                         switch (rhythm.getContent()) {
                             case "{":
-                                durationList.add(-1);
+                                paragraph.getSymbolQueue().offer(new Pair<>(1, durationList.size()));
                                 break;
                             case "}":
-                                durationList.add(-2);
+                                paragraph.getSymbolQueue().offer(new Pair<>(2, durationList.size()));
                                 break;
                             case "1":
                                 lineRhythmCount++;
@@ -328,23 +329,21 @@ public class Semantic {
                         }
                     }
 
-                    for(MidiTrack midiTrack:midiTracks){
+                    for (MidiTrack midiTrack : midiTracks) {
                         midiTrack.setEnd();
                     }
             }
         }
     }
 
-    private MidiTrack constuctMidiTrackPart(Paragraph paragraph,int duration){
+    private MidiTrack constuctMidiTrackPart(Paragraph paragraph, int duration) {
         if (getIsError())
             return null;
 
         MidiTrack midiTrack = new MidiTrack();
         midiTrack.setBpm(paragraph.getSpeed());
-
         midiTrack.setInstrument(channel, paragraph.getInstrument());
-
-        midiTrack.addController(channel, 7, paragraph.getVolume());
+        midiTrack.addController(channel, (byte) 0x07, paragraph.getVolume());
 
         if (duration != 0)
             midiTrack.setDuration(duration);
@@ -352,18 +351,93 @@ public class Semantic {
         List<Integer> noteList = paragraph.getNoteList();
         List<Integer> durationList = paragraph.getDurationList();
 
-        for (int i = 0; i < noteList.size(); i++) {
-            midiTrack.insertNote(channel, noteList.get(i), durationList.get(i));
+        Queue<Note> bufferNotes = new PriorityQueue<>(Comparator.comparingInt(Note::getDeltaTime));
+
+        Queue<Pair<Integer, Integer>> symbolQueue = paragraph.getSymbolQueue();
+
+        byte channel;
+        byte channelLast = -1;
+
+        int count = noteList.size();
+        for (int i = 0; i < count; i++) {
+            if (!symbolQueue.isEmpty() && symbolQueue.peek().getValue() == i) {
+                //i为符号后一个音符
+                switch (symbolQueue.poll().getKey()) {
+                    case 0:
+                        if (symbolQueue.peek().getKey() != 0) {
+                            //同时音中存在连音，语义错误
+                            break;
+                        }
+                        do {
+                            //添加同时音的noteOn
+                            i++;
+                        } while (symbolQueue.peek().getValue() != i);
+
+                        //读到第二个|，插入noteOff
+                        break;
+
+                    case 1:
+                        if (symbolQueue.peek().getKey() != 2) {
+                            //连音符号中间存在同时音，语义错误
+                            break;
+                        }
+                        //处理连音左括号
+                        break;
+
+                    case 2:
+                        //处理连音右括号
+                        break;
+                }
+            }
+
+            if (noteList.get(i) != 0) {
+                if (bufferNotes.isEmpty()) {
+                    channel = 0;
+
+                    if (channel == channelLast)
+                        midiTrack.insertNoteOn(0, channel, noteList.get(i).byteValue(), (byte) 120, true);
+                    else
+                        midiTrack.insertNoteOn(0, channel, noteList.get(i).byteValue(), (byte) 120, false);
+
+                    midiTrack.insertNoteOff(durationList.get(i), channel, noteList.get(i).byteValue(), true);
+
+                    channelLast = channel;
+                } else {
+                    Note note = bufferNotes.poll();
+
+                    if (note.getNote() == 0) {
+                        int deltaTime = note.getDeltaTime();
+
+                        while (!bufferNotes.isEmpty() && bufferNotes.peek().getNote() == 0)
+                            deltaTime += bufferNotes.poll().getDeltaTime();
+
+                        channel = 0;
+
+                        if (channel == channelLast)
+                            midiTrack.insertNoteOn(deltaTime, channel, noteList.get(i).byteValue(), (byte) 120, true);
+                        else
+                            midiTrack.insertNoteOn(deltaTime, channel, noteList.get(i).byteValue(), (byte) 120, false);
+
+                        midiTrack.insertNoteOff(durationList.get(i), channel, noteList.get(i).byteValue(), true);
+
+                        channelLast = channel;
+                    } else {
+                        //存在同时音
+                    }
+                }
+            } else {
+                Note zero = new Note(durationList.get(i), (byte) 0, (byte) 0, (byte) 0, true);
+                bufferNotes.offer(zero);
+            }
         }
 
-//        channel：同一个Track上channel不同五线谱表示上画为两谱线轨道
-//        channel++;
-//
-//        if (channel == 9)
-//            channel++;
-//
-//        if (channel > 15)
-//            channel = 0;
+
+//        todo 插入每一个音符前检测音符队列中队首音符的持续时间是否减为0，是则插入noteOff，否则直接插入这个音符的noteOn，并将noteOff和持续时间加入队列
+//        for (int i = 0; i < noteList.size(); i++) {
+//            midiTrack.insertNote(channel, noteList.get(i).byteValue(), durationList.get(i));
+//        }
+//        channel：同一音轨上的不同通道，同时音需设置两个channel值
+
 
         return midiTrack;
     }
@@ -383,5 +457,4 @@ public class Semantic {
     public MidiFile getMidiFile() {
         return midiFile;
     }
-
 }
