@@ -49,21 +49,21 @@ public class MidiTrack {
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, instrument);
     }
 
-    public void insertNoteOff(int deltaTime, byte note) {
+    public void insertNoteOff(int deltaTime, byte channel, byte note) {
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, MidiUtil.buildBytes(deltaTime));
 
-        byte[] noteOff = new byte[]{(byte) 0x80, note, 0x00};
+        byte[] noteOff = new byte[]{(byte) (0x80 + channel), note, 0x00};
 
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOff);
     }
 
-    public void insertNoteOn(byte note, byte velocity) {
+    public void insertNoteOn(byte channel, byte note, byte velocity) {
         byte[] noteOn;
 
         if (note != 0)
-            noteOn = new byte[]{0x00, (byte) 0x90, note, velocity};
+            noteOn = new byte[]{0x00, (byte) (0x90 + channel), note, velocity};
         else
-            noteOn = new byte[]{0x00, (byte) 0x90, note, 0x00};
+            noteOn = new byte[]{0x00, (byte) (0x90 + channel), note, 0x00};
 
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOn);
     }

@@ -319,10 +319,10 @@ public class Semantic {
                                 MidiTrack midiTrack;
 
                                 if (index > midiTracks.size() - 1) {
-                                    midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), totalDuration);
+                                    midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), totalDuration, (byte) index);
                                     midiTracks.add(midiTrack);
                                 } else {
-                                    midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), 0);
+                                    midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), 0, (byte) index);
                                     midiTracks.get(index).merge(midiTrack);
                                 }
 
@@ -337,14 +337,14 @@ public class Semantic {
         }
     }
 
-    private MidiTrack constuctMidiTrackPart(Paragraph paragraph, int duration) {
+    private MidiTrack constuctMidiTrackPart(Paragraph paragraph, int duration, byte channel) {
         if (getIsError())
             return null;
 
         MidiTrack midiTrack = new MidiTrack();
         midiTrack.setBpm(paragraph.getSpeed());
-        midiTrack.setInstrument((byte) 0x00, paragraph.getInstrument());
-        midiTrack.addController((byte) 0x00, (byte) 0x07, paragraph.getVolume());
+        midiTrack.setInstrument(channel, paragraph.getInstrument());
+        midiTrack.addController(channel, (byte) 0x07, paragraph.getVolume());
 
         if (duration != 0)
             midiTrack.setDuration(duration);
@@ -372,7 +372,7 @@ public class Semantic {
                             }
 
                             for (boolean isPrimary = true; true; isPrimary = false) {
-                                midiTrack.insertNoteOn(noteList.get(i).byteValue(), (byte) 120);
+                                midiTrack.insertNoteOn(channel, noteList.get(i).byteValue(), (byte) 120);
                                 tempNote = new Note(durationList.get(i), noteList.get(i++).byteValue(), isPrimary);
                                 bufferNotes.offer(tempNote);
 
@@ -383,7 +383,7 @@ public class Semantic {
                             symbolQueue.poll();
                             do {
                                 tempNote = bufferNotes.poll();
-                                midiTrack.insertNoteOff(tempNote.getDeltaTime(), tempNote.getNote());
+                                midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
                                 reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
                             } while (tempNote.getIsPrimary() != true);
                         }
@@ -411,25 +411,25 @@ public class Semantic {
             }
 
             if (i < count) {
-                midiTrack.insertNoteOn(noteList.get(i).byteValue(), (byte) 120);
+                midiTrack.insertNoteOn(channel, noteList.get(i).byteValue(), (byte) 120);
 
                 if (!bufferNotes.isEmpty()) {
                     //同时音
                     while (!bufferNotes.isEmpty() && durationList.get(i) >= bufferNotes.peek().getDeltaTime()) {
                         tempNote = bufferNotes.poll();
-                        midiTrack.insertNoteOff(tempNote.getDeltaTime(), tempNote.getNote());
+                        midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
                         reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
                         durationList.set(i, durationList.get(i) - tempNote.getDeltaTime());
                     }
                     reduceDeltaTimeInQueue(bufferNotes, durationList.get(i));
                 }
-                midiTrack.insertNoteOff(durationList.get(i), noteList.get(i).byteValue());
+                midiTrack.insertNoteOff(durationList.get(i), channel, noteList.get(i).byteValue());
             }
         }
 
         while (!bufferNotes.isEmpty()) {
             tempNote = bufferNotes.poll();
-            midiTrack.insertNoteOff(tempNote.getDeltaTime(), tempNote.getNote());
+            midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
             reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
         }
 
