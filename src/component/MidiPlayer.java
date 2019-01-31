@@ -6,9 +6,13 @@ import javax.sound.midi.Synthesizer;
 import java.io.File;
 
 public class MidiPlayer {
-    public Synthesizer synthesizer;
-    public Sequencer sequencer;
+
+    private Synthesizer synthesizer;
+
+    private Sequencer sequencer;
+
     private long microsecondPosition;
+
     private String title;
 
     public MidiPlayer() {
@@ -63,13 +67,20 @@ public class MidiPlayer {
     }
 
     public void setTitle(String title) {
+        int length = title.length();
+
         title += " ]";
 
         int count = 58 - title.length();
 
+        StringBuilder titleBuilder = new StringBuilder(title);
         for (int i = 0; i < count; i++) {
-            title += " ";
+            titleBuilder.append(" ");
         }
+        title = titleBuilder.toString();
+
+        if (length < 5)
+            title += "\t";
 
         this.title = title;
     }
@@ -91,7 +102,7 @@ public class MidiPlayer {
         if (minute < 10)
             out.append("0");
 
-        out.append(minute + ":");
+        out.append(minute).append(":");
 
         if (second < 10)
             out.append("0");
@@ -116,4 +127,5 @@ public class MidiPlayer {
 
         return out.toString();
     }
+
 }

@@ -1,17 +1,22 @@
 package entity.interpreter;
 
+/**
+ * 音符类
+ * 用于处理同时音操作时存入优先队列
+ * 以便按时值排序
+ */
+
 public class Note {
+
     private int deltaTime;
-    private byte channel;
+
     private byte note;
-    private byte velocity;
+
     private boolean isPrimary;
 
-    public Note(int deltaTime, byte channel, byte note, byte velocity, boolean isPrimary) {
+    public Note(int deltaTime, byte note, boolean isPrimary) {
         this.deltaTime = deltaTime;
-        this.channel = channel;
         this.note = note;
-        this.velocity = velocity;
         this.isPrimary = isPrimary;
     }
 
@@ -23,19 +28,12 @@ public class Note {
         return deltaTime;
     }
 
-    public byte getChannel() {
-        return channel;
-    }
-
     public byte getNote() {
         return note;
-    }
-
-    public byte getVelocity() {
-        return velocity;
     }
 
     public boolean getIsPrimary() {
         return isPrimary;
     }
+
 }

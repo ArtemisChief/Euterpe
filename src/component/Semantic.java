@@ -11,46 +11,47 @@ import java.util.*;
 
 public class Semantic {
 
-    private Node AbstractSyntaxTree;
+    private Node abstractSyntaxTree;
 
     private List<Integer> errorLines;
+
     private StringBuilder errorInfo;
 
     private int toneOffset;
+
     private int haftToneOffset;
 
     private Map<String, Paragraph> paragraphMap;
 
     private MidiFile midiFile;
-    private List<MidiTrack> midiTracks;
-    private byte channel;
 
-    public String ConvertToMidi(Node abstractSyntaxTree) {
-        AbstractSyntaxTree = abstractSyntaxTree;
+    private List<MidiTrack> midiTracks;
+
+    public String interpret(Node abstractSyntaxTree) {
+        this.abstractSyntaxTree = abstractSyntaxTree;
 
         errorLines = new ArrayList<>();
         errorInfo = new StringBuilder();
 
         toneOffset = 0;
         haftToneOffset = 0;
-        channel = 0;
 
         paragraphMap = new HashMap<>();
 
         midiTracks = new ArrayList<>();
 
-        DFS_Midi(AbstractSyntaxTree, null);
-
-        midiFile = new MidiFile(midiTracks);
-        midiFile.construct();
+        processTreeNode(this.abstractSyntaxTree, null);
 
         if (getIsError())
             return null;
 
+        midiFile = new MidiFile(midiTracks);
+        midiFile.construct();
+
         return midiFile.toString();
     }
 
-    private void DFS_Midi(Node curNode, Paragraph para) {
+    private void processTreeNode(Node curNode, Paragraph para) {
         Paragraph paragraph = para;
         List<Integer> noteList;
         List<Integer> durationList;
@@ -60,16 +61,16 @@ public class Semantic {
         for (Node child : curNode.getChildren()) {
             switch (child.getType()) {
                 case "score":
-                    DFS_Midi(child, paragraph);
+                    processTreeNode(child, paragraph);
                     break;
 
                 case "execution":
-                    DFS_Midi(child, paragraph);
+                    processTreeNode(child, paragraph);
                     break;
 
                 case "statement":
                     if (paragraphMap.containsKey(child.getChild(0).getContent())) {
-                        errorInfo.append("Line: " + child.getChild(0).getLine() + "\t重复声明的段落名" + child.getChild(0).getContent() + "\n");
+                        errorInfo.append("Line: ").append(child.getChild(0).getLine()).append("\t重复声明的段落名").append(child.getChild(0).getContent()).append("\n");
                         errorLines.add(child.getChild(0).getLine());
                     }
                     paragraph = new Paragraph();
@@ -80,7 +81,7 @@ public class Semantic {
                     if (child.getChild(0).getContent().length() < 4 && Integer.parseInt(child.getChild(0).getContent()) >= 0 && Integer.parseInt(child.getChild(0).getContent()) < 128) {
                         paragraph.setInstrument(Byte.parseByte(child.getChild(0).getContent()));
                     } else {
-                        errorInfo.append("Line: " + child.getChild(0).getLine() + "\t乐器声明超出范围（0-127）\n");
+                        errorInfo.append("Line: ").append(child.getChild(0).getLine()).append("\t乐器声明超出范围（0-127）\n");
                         errorLines.add(child.getChild(0).getLine());
                     }
                     break;
@@ -89,7 +90,7 @@ public class Semantic {
                     if (child.getChild(0).getContent().length() < 4 && Integer.parseInt(child.getChild(0).getContent()) >= 0 && Integer.parseInt(child.getChild(0).getContent()) < 128) {
                         paragraph.setVolume(Byte.parseByte(child.getChild(0).getContent()));
                     } else {
-                        errorInfo.append("Line: " + child.getChild(0).getLine() + "\t音量声明超出范围（0-127）\n");
+                        errorInfo.append("Line: ").append(child.getChild(0).getLine()).append("\t音量声明超出范围（0-127）\n");
                         errorLines.add(child.getChild(0).getLine());
                     }
                     break;
@@ -98,7 +99,7 @@ public class Semantic {
                     if (child.getChild(0).getContent().length() < 4) {
                         paragraph.setSpeed(Float.parseFloat(child.getChild(0).getContent()));
                     } else {
-                        errorInfo.append("Line: " + child.getChild(0).getLine() + "\t速度声明超出范围（0-999）\n");
+                        errorInfo.append("Line: ").append(child.getChild(0).getLine()).append("\t速度声明超出范围（0-999）\n");
                         errorLines.add(child.getChild(0).getLine());
                     }
                     break;
@@ -138,7 +139,7 @@ public class Semantic {
                     break;
 
                 case "sentence":
-                    DFS_Midi(child, paragraph);
+                    processTreeNode(child, paragraph);
                     break;
 
                 case "end paragraph":
@@ -269,14 +270,14 @@ public class Semantic {
                                 break;
                             case "w*":
                                 lineRhythmCount++;
-                                errorInfo.append("Line: " + line + "\t不支持32分附点音符，即w*\n");
+                                errorInfo.append("Line: ").append(line).append("\t不支持32分附点音符，即w*\n");
                                 errorLines.add(line);
                                 break;
                         }
                     }
 
                     if (lineNoteCount != lineRhythmCount) {
-                        errorInfo.append("Line: " + line + "\t该句音符与时值数量不相同\n");
+                        errorInfo.append("Line: ").append(line).append("\t该句音符与时值数量不相同\n");
                         errorLines.add(line);
                     }
 
@@ -310,7 +311,7 @@ public class Semantic {
                                 paraName = playList.getContent();
 
                                 if (!paragraphMap.containsKey(paraName)) {
-                                    errorInfo.append("Line: " + playList.getLine() + "\t未声明的段落名" + paraName + "\n");
+                                    errorInfo.append("Line: ").append(playList.getLine()).append("\t未声明的段落名").append(paraName).append("\n");
                                     errorLines.add(playList.getLine());
                                     break;
                                 }
@@ -329,9 +330,9 @@ public class Semantic {
                         }
                     }
 
-                    for (MidiTrack midiTrack : midiTracks) {
-                        midiTrack.setEnd();
-                    }
+                    if (!getIsError())
+                        for (MidiTrack midiTrack : midiTracks)
+                            midiTrack.setEnd();
             }
         }
     }
@@ -342,8 +343,8 @@ public class Semantic {
 
         MidiTrack midiTrack = new MidiTrack();
         midiTrack.setBpm(paragraph.getSpeed());
-        midiTrack.setInstrument(channel, paragraph.getInstrument());
-        midiTrack.addController(channel, (byte) 0x07, paragraph.getVolume());
+        midiTrack.setInstrument((byte) 0x00, paragraph.getInstrument());
+        midiTrack.addController((byte) 0x00, (byte) 0x07, paragraph.getVolume());
 
         if (duration != 0)
             midiTrack.setDuration(duration);
@@ -355,8 +356,7 @@ public class Semantic {
 
         Queue<Pair<Integer, Integer>> symbolQueue = paragraph.getSymbolQueue();
 
-        byte channel;
-        byte channelLast = -1;
+        Note tempNote;
 
         int count = noteList.size();
         for (int i = 0; i < count; i++) {
@@ -364,82 +364,82 @@ public class Semantic {
                 //i为符号后一个音符
                 switch (symbolQueue.poll().getKey()) {
                     case 0:
-                        if (symbolQueue.peek().getKey() != 0) {
-                            //同时音中存在连音，语义错误
-                            break;
-                        }
-                        do {
-                            //添加同时音的noteOn
-                            i++;
-                        } while (symbolQueue.peek().getValue() != i);
+                        if (!symbolQueue.isEmpty()) {
+                            if (symbolQueue.peek().getKey() != 0) {
+                                errorInfo.append("Line: 未知\t同时音间存在连音无意义\n");
+                                errorLines.add(0);
+                                break;
+                            }
 
-                        //读到第二个|，插入noteOff
+                            for (boolean isPrimary = true; true; isPrimary = false) {
+                                midiTrack.insertNoteOn(noteList.get(i).byteValue(), (byte) 120);
+                                tempNote = new Note(durationList.get(i), noteList.get(i++).byteValue(), isPrimary);
+                                bufferNotes.offer(tempNote);
+
+                                if (symbolQueue.peek().getValue() == i)
+                                    break;
+                            }
+
+                            symbolQueue.poll();
+                            do {
+                                tempNote = bufferNotes.poll();
+                                midiTrack.insertNoteOff(tempNote.getDeltaTime(), tempNote.getNote());
+                                reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
+                            } while (tempNote.getIsPrimary() != true);
+                        }
                         break;
 
                     case 1:
-                        if (symbolQueue.peek().getKey() != 2) {
-                            //连音符号中间存在同时音，语义错误
-                            break;
-                        }
-                        //处理连音左括号
-                        break;
+                        if (!symbolQueue.isEmpty()) {
+                            if (symbolQueue.peek().getKey() != 2) {
+                                errorInfo.append("Line: 未知\t连音间存在同时音无意义\n");
+                                errorLines.add(0);
+                                break;
+                            }
 
-                    case 2:
-                        //处理连音右括号
+                            do {
+                                //处理连音左括号
+                                i++;
+                            } while (symbolQueue.peek().getValue() != i);
+
+                            //读到连音右括号
+                            symbolQueue.poll();
+
+                        }
                         break;
                 }
             }
 
-            if (noteList.get(i) != 0) {
-                if (bufferNotes.isEmpty()) {
-                    channel = 0;
+            if (i < count) {
+                midiTrack.insertNoteOn(noteList.get(i).byteValue(), (byte) 120);
 
-                    if (channel == channelLast)
-                        midiTrack.insertNoteOn(0, channel, noteList.get(i).byteValue(), (byte) 120, true);
-                    else
-                        midiTrack.insertNoteOn(0, channel, noteList.get(i).byteValue(), (byte) 120, false);
-
-                    midiTrack.insertNoteOff(durationList.get(i), channel, noteList.get(i).byteValue(), true);
-
-                    channelLast = channel;
-                } else {
-                    Note note = bufferNotes.poll();
-
-                    if (note.getNote() == 0) {
-                        int deltaTime = note.getDeltaTime();
-
-                        while (!bufferNotes.isEmpty() && bufferNotes.peek().getNote() == 0)
-                            deltaTime += bufferNotes.poll().getDeltaTime();
-
-                        channel = 0;
-
-                        if (channel == channelLast)
-                            midiTrack.insertNoteOn(deltaTime, channel, noteList.get(i).byteValue(), (byte) 120, true);
-                        else
-                            midiTrack.insertNoteOn(deltaTime, channel, noteList.get(i).byteValue(), (byte) 120, false);
-
-                        midiTrack.insertNoteOff(durationList.get(i), channel, noteList.get(i).byteValue(), true);
-
-                        channelLast = channel;
-                    } else {
-                        //存在同时音
+                if (!bufferNotes.isEmpty()) {
+                    //同时音
+                    while (!bufferNotes.isEmpty() && durationList.get(i) >= bufferNotes.peek().getDeltaTime()) {
+                        tempNote = bufferNotes.poll();
+                        midiTrack.insertNoteOff(tempNote.getDeltaTime(), tempNote.getNote());
+                        reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
+                        durationList.set(i, durationList.get(i) - tempNote.getDeltaTime());
                     }
+                    reduceDeltaTimeInQueue(bufferNotes, durationList.get(i));
                 }
-            } else {
-                Note zero = new Note(durationList.get(i), (byte) 0, (byte) 0, (byte) 0, true);
-                bufferNotes.offer(zero);
+                midiTrack.insertNoteOff(durationList.get(i), noteList.get(i).byteValue());
             }
         }
 
-
-//        todo 插入每一个音符前检测音符队列中队首音符的持续时间是否减为0，是则插入noteOff，否则直接插入这个音符的noteOn，并将noteOff和持续时间加入队列
-//        for (int i = 0; i < noteList.size(); i++) {
-//            midiTrack.insertNote(channel, noteList.get(i).byteValue(), durationList.get(i));
-//        }
-//        channel：同一音轨上的不同通道，同时音需设置两个channel值
-
+        while (!bufferNotes.isEmpty()) {
+            tempNote = bufferNotes.poll();
+            midiTrack.insertNoteOff(tempNote.getDeltaTime(), tempNote.getNote());
+            reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
+        }
 
         return midiTrack;
+    }
+
+    private void reduceDeltaTimeInQueue(Queue<Note> bufferNotes, int deltaTime) {
+        for (Note noteInQueue : bufferNotes) {
+            noteInQueue.setDeltaTime(noteInQueue.getDeltaTime() - deltaTime);
+        }
     }
 
     public boolean getIsError() {
@@ -457,4 +457,5 @@ public class Semantic {
     public MidiFile getMidiFile() {
         return midiFile;
     }
+
 }

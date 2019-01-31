@@ -7,8 +7,11 @@ package entity.interpreter;
  */
 
 public class Token {
+
     private int type;
+
     private String content;
+
     private int line;
 
     public Token(int type, String content, int line) {

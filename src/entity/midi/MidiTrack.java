@@ -3,6 +3,7 @@ package entity.midi;
 import util.MidiUtil;
 
 public class MidiTrack {
+
     private byte[] midiTrackData;
 
     private byte[] midiTrackContentData;
@@ -48,53 +49,21 @@ public class MidiTrack {
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, instrument);
     }
 
-//    public void insertNote(byte channel, byte pitch, int ticks) {
-//        byte[] noteOn;
-//        byte[] noteOff;
-//
-//        if (pitch != 0) {
-//            noteOn = new byte[]{0x00, (byte) (0x90 + channel), pitch, 0x40};
-//            midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOn);
-//
-//            noteOff = MidiUtil.buildBytes(ticks);
-//            midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOff);
-//
-//            noteOff = new byte[]{(byte) (0x80 + channel), pitch, 0x00};
-//            midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOff);
-//        } else {
-//            noteOn = new byte[]{0x00, (byte) (0x90 + channel), 0X00, 0x00};
-//            midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOn);
-//
-//            noteOff = MidiUtil.buildBytes(ticks);
-//            midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOff);
-//
-//            noteOff = new byte[]{(byte) (0x80 + channel), 0X00, 0x00};
-//            midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOff);
-//        }
-//    }
-
-    public void insertNoteOff(int deltaTime, byte channel, byte note, boolean sameChannel) {
+    public void insertNoteOff(int deltaTime, byte note) {
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, MidiUtil.buildBytes(deltaTime));
 
-        byte[] noteOff;
-
-        if (sameChannel)
-            noteOff = new byte[]{note, 0x00};
-        else
-            noteOff = new byte[]{(byte) (0x80 + channel), note, 0x00};
+        byte[] noteOff = new byte[]{(byte) 0x80, note, 0x00};
 
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOff);
     }
 
-    public void insertNoteOn(int deltaTime, byte channel, byte note, byte velocity, boolean sameChannel) {
-        midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, MidiUtil.buildBytes(deltaTime));
-
+    public void insertNoteOn(byte note, byte velocity) {
         byte[] noteOn;
 
-        if (sameChannel)
-            noteOn = new byte[]{note, velocity};
+        if (note != 0)
+            noteOn = new byte[]{0x00, (byte) 0x90, note, velocity};
         else
-            noteOn = new byte[]{(byte) (0x90 + channel), note, velocity};
+            noteOn = new byte[]{0x00, (byte) 0x90, note, 0x00};
 
         midiTrackContentData = MidiUtil.mergeByte(midiTrackContentData, noteOn);
     }
@@ -109,7 +78,8 @@ public class MidiTrack {
         this.midiTrackContentData = MidiUtil.mergeByte(this.midiTrackContentData, midiTrack.midiTrackContentData);
     }
 
-    public byte[] getMidiTrackData() {
+    byte[] getMidiTrackData() {
         return midiTrackData;
     }
+
 }

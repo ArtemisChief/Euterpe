@@ -1,0 +1,53 @@
+/*
+ 新闻联播片尾
+ */
+
+paragraph Name1
+instrument= 0
+volume= 127
+speed= 90
+1= C
+0(#46)20(#46)20(56)20(56)2<gggggggggggggggg>
+0(56)20(56)20(56)2#1023<gggggggggggggggg>
+#4#46(6#67)3#4<8g88g4*gg>
+5#456#4323<8g888*gg4>
+223#436#42<8*8gg8*888>
+566223#43#1<8g888*gg88>
+#4#46(6#67)3#4<8g88g4*gg>
+5#456#4323<8g888*gg4>
+77[#122]6#42<8*8gg8*888>
+5#4232<8g88g>
+end
+
+paragraph Name2
+instrument= 0
+volume= 127
+speed= 90
+1= C
+((2#456256))  <4444 442>
+((2#4543#456)) <4444 4444>
+((77)#12(3#4556))<44448*4{g4}4>
+((2#4543#456)) <4444 4444>
+((5567566))<44448*88*>
+end
+
+paragraph Name3
+instrument= 0
+volume= 120
+speed= 90
+1= C
+0(#46)20(#46)20(56)20(56)2<gggggggggggggggg>
+0(56)20(56)20(56)2#1023<gggggggggggggggg>
+2(765#4#4)<888g{g2}>
+end
+
+paragraph Name4
+instrument= 0
+volume= 127
+speed= 90
+1= C
+((2#456256))  <4444 442>
+((4567)22)<888g{g2}>
+end
+
+play(Name1&Name2,Name1&Name2,Name3&Name4)

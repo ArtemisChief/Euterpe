@@ -9,13 +9,6 @@ public class MidiUtil {
         return result;
     }
 
-    public static byte[] mergeByte(byte[] b1, byte b2) {
-        byte[] result = new byte[b1.length + 1];
-        System.arraycopy(b1, 0, result, 0, b1.length);
-        result[b1.length] = b2;
-        return result;
-    }
-
     public static int bpmToMpt(float bpm) {
         return (int) (60 / bpm * 1000000);
     }
@@ -39,7 +32,7 @@ public class MidiUtil {
 
     private static final String HEX = "0123456789ABCDEF";
 
-    public static String byteToHex(byte b) {
+    private static String byteToHex(byte b) {
         int high = (b & 0xF0) >> 4;
         int low = (b & 0x0F);
 
@@ -48,8 +41,8 @@ public class MidiUtil {
 
     public static String bytesToHex(byte[] b) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < b.length; i++) {
-            sb.append(byteToHex(b[i])).append(" ");
+        for (byte aB : b) {
+            sb.append(byteToHex(aB)).append(" ");
         }
         return sb.toString();
     }
@@ -60,8 +53,6 @@ public class MidiUtil {
 
         if (mValue == 0) {
             mBytes = new byte[1];
-            mBytes[0] = 0x00;
-            mSizeInBytes = 1;
             return mBytes;
         }
 

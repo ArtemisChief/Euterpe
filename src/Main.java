@@ -1,4 +1,4 @@
-import ui.GUI;
+import userInterface.GraphicalUserInterface;
 import org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper;
 
 import javax.swing.*;
@@ -29,8 +29,8 @@ public class Main {
             System.out.println(e.toString());
         }
 
-        GUI gui = new GUI();
-        gui.setVisible(true);
+        GraphicalUserInterface graphicalUserInterface = new GraphicalUserInterface();
+        graphicalUserInterface.setVisible(true);
 
     }
 

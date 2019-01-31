@@ -4,26 +4,33 @@ import javafx.util.Pair;
 
 import java.util.*;
 
+/**
+ * 段落类
+ * 用于语义分析构造符号表
+ * 以便翻译成Midi语言
+ *
+ * 符号队列表
+ * 0    同时音符
+ * 1    连音左括号
+ * 2    连音右括号
+ */
+
 public class Paragraph {
 
     private Float Speed;
-    private byte volume;
-    private byte instrument;
-    private List<Integer> noteList;
-    private List<Integer> durationList;
-    private Queue<Pair<Integer, Integer>> symbolQueue;
 
-    /**
-     * 符号队列表
-     * 0    同时音符
-     * 1    连音左括号
-     * 2    连音右括号
-     */
+    private byte volume;
+
+    private byte instrument;
+
+    private List<Integer> noteList;
+
+    private List<Integer> durationList;
+
+    private Queue<Pair<Integer, Integer>> symbolQueue;
 
     public Paragraph() {
         Speed = 0.0F;
-        instrument = 0;
-        volume = 0;
         noteList = new ArrayList<>();
         durationList = new ArrayList<>();
         symbolQueue = new PriorityQueue<>(Comparator.comparingInt(Pair::getValue));
@@ -64,4 +71,5 @@ public class Paragraph {
     public Queue<Pair<Integer, Integer>> getSymbolQueue() {
         return symbolQueue;
     }
+
 }

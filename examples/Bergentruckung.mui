@@ -1,0 +1,53 @@
+/*
+ Bergentrückung
+ From UnterTale
+ */
+
+paragraph Name1
+instrument= 0
+volume= 127
+speed= 113
+30#50#4 #20#403<g8*g8*2 g8*g8*2>
+#1030#2 (7)0#10(#5)<g8*g8*2 g8*g8*2>
+30#50#4 70#40#5<g8*g8*2 g8*g8*2>
+#50#40#5070[#130]<gggggggg488>
+[#203#2#10]70[#20#1]<ggwwwwgggg2>
+0<4>
+end
+
+paragraph Name2
+instrument= 0
+volume= 127
+speed= 113
+(#50#507070)#1<gggggggg2>
+(#40#407070#5)<gggggggg2>
+(#40#4070707060#40#50)<gggggggggggggggg>
+(#4030#40#500)<gggggggg2>
+(#50#507070)#1<gggggggg2 >
+#20#20(7070)#23<gggggggg44>
+#20#10(7)0#2<ggggggg>
+end
+
+paragraph Name3
+instrument= 0
+volume= 127
+speed= 113
+(#10#20(6))<88882>
+((70)#20#1)<88882>
+((60706))<88882>
+((#4070)#1)<88882>
+(#10#20(6))<88882>
+((70)#20#1)<88882>
+((#50706))<88882>
+((#4070)#1)<88882>
+end
+
+paragraph Name4
+instrument= 0
+volume= 127
+speed= 113
+0000000<1111112>
+#2#1(7030#4070#5)<44gggggggg2>
+end
+
+play(Name1&Name2&Name3&Name4)

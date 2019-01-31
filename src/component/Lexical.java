@@ -3,6 +3,7 @@ package component;
 import entity.interpreter.Token;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  *     <错误,-1> 错误token
@@ -31,11 +32,13 @@ import java.util.ArrayList;
 
 public class Lexical {
 
-    private ArrayList<Token> tokens;
+    private List<Token> tokens;
+
     private int count;
+
     private int skipLine;
-    private ArrayList<Integer> errorLine;
-    private int lastLine;
+
+    private List<Integer> errorLine;
 
     private int searchReserve(String s) {
         switch (s) {
@@ -59,27 +62,27 @@ public class Lexical {
     }
 
     private boolean isTonality(char tonality) {
-        return tonality == 'C' || tonality == 'D' || tonality == 'E' || tonality == 'F' || tonality == 'G' || tonality == 'A' || tonality == 'B';
+        return tonality != 'C' && tonality != 'D' && tonality != 'E' && tonality != 'F' && tonality != 'G' && tonality != 'A' && tonality != 'B';
     }
 
     private boolean isNote(char ch) {
-        return (ch >= '0' && ch <= '7') || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '{' || ch == '}';
+        return (ch < '0' || ch > '7') && ch != '[' && ch != ']' && ch != '(' && ch != ')' && ch != '{' && ch != '}';
     }
 
     private boolean isTime(char ch) {
-        return ch == '1' || ch == '2' || ch == '4' || ch == '8' || ch == 'g' || ch == '*' || ch=='w';
+        return ch == '1' || ch == '2' || ch == '4' || ch == '8' || ch == 'g' || ch == '*' || ch == 'w';
     }
 
     //预处理
-    public String filterResource(String input) {
-        String temp = "";
+    private String filterResource(String input) {
+        StringBuilder temp = new StringBuilder();
         for (int i = 0; i < input.length(); i++) {
             if (i + 1 < input.length()) {
                 if (input.charAt(i) == '/' && input.charAt(i + 1) == '/') {//若为单行注释“//”,则去除注释后面的东西，直至遇到回车换行
                     while (i < input.length() && input.charAt(i) != '\n') {
                         i++;//向后扫描
                         if (i == input.length() - 1)
-                            return temp;
+                            return temp.toString();
                     }
 
                 }
@@ -88,11 +91,11 @@ public class Lexical {
                     if (i + 1 < input.length()) {
                         while (input.charAt(i) != '*' || input.charAt(i + 1) != '/') {
                             if (input.charAt(i) == '\n')
-                                temp += String.valueOf(input.charAt(i));
+                                temp.append(String.valueOf(input.charAt(i)));
                             i++;//继续扫描
                             if (i == input.length()) {
                                 count = -1;
-                                tokens.add(new Token(-1,"多行注释未出现*/",-1));
+                                tokens.add(new Token(-1, "多行注释未出现*/", -1));
                                 return null;
                             }
                         }
@@ -105,48 +108,48 @@ public class Lexical {
                 }
             }
             if (i < input.length() && input.charAt(i) == '\t') {//若出现\t则替换成空格
-                temp += " ";
+                temp.append(" ");
             } else if (i < input.length() && input.charAt(i) != '\r') {//若出现无用字符，则过滤；否则加载
-                temp += String.valueOf(input.charAt(i));
+                temp.append(String.valueOf(input.charAt(i)));
             }
         }
 
         //处理1=和speed=后的空格
-        String output = "";
+        StringBuilder output = new StringBuilder();
         for (int i = 0; i < temp.length(); i++) {
             //读取到=时将其后跟着的连续空格删去
             if (temp.charAt(i) == '=') {
-                output += String.valueOf(temp.charAt(i));
+                output.append(String.valueOf(temp.charAt(i)));
                 i++;
                 while (i + 1 < temp.length() && (temp.charAt(i) == ' ' || temp.charAt(i) == '#' || temp.charAt(i) == 'b')) {
                     if (temp.charAt(i) == '#' || temp.charAt(i) == 'b')
-                        output += String.valueOf(temp.charAt(i));
+                        output.append(String.valueOf(temp.charAt(i)));
                     i++;
                 }
             }
             //处理<>间的空格
             if (i + 1 < temp.length() && temp.charAt(i) == '<') {
                 //读取到<时，将到>为止其中的空格删去
-                output += String.valueOf(temp.charAt(i));
+                output.append(String.valueOf(temp.charAt(i)));
                 i++;
                 while (i + 1 < temp.length() && temp.charAt(i) != '>') {
                     if (temp.charAt(i) == ' ')
                         i++;
                     else {
-                        output += String.valueOf(temp.charAt(i));
+                        output.append(String.valueOf(temp.charAt(i)));
                         i++;
                     }
                 }
             }
 
             if (i < temp.length())
-                output += String.valueOf(temp.charAt(i));
+                output.append(String.valueOf(temp.charAt(i)));
         }
-        return output;
+        return output.toString();
     }
 
     //分析单个词 isIdentifier表示传入字符串当前是否可能为标识符
-    public void Scanner(String inputWord, boolean isIdentifier) {
+    private void Scanner(String inputWord, boolean isIdentifier) {
         if (count == skipLine)
             return;
         //如果字符串为空，直接返回
@@ -340,7 +343,7 @@ public class Lexical {
                 syn = 4;
                 tokens.add(new Token(syn, "1=", count));
                 if (inputWord.length() == 3) {
-                    if (!isTonality(inputWord.charAt(2))) {
+                    if (isTonality(inputWord.charAt(2))) {
                         skipLine = count;
                         errorLine.add(skipLine);
                         tokens.add(new Token(-1, "调性格式错误！", count));
@@ -359,20 +362,17 @@ public class Lexical {
                     } else
                         Scanner(String.valueOf(inputWord.charAt(2)), false);
 
-                    if (!isTonality(inputWord.charAt(3))) {
+                    if (isTonality(inputWord.charAt(3))) {
                         skipLine = count;
                         errorLine.add(skipLine);
                         tokens.add(new Token(-1, "调性格式错误！", count));
-                        return;
                     } else {
                         tokens.add(new Token(95, String.valueOf(inputWord.charAt(3)), count));
-                        return;
                     }
                 } else {
                     skipLine = count;
                     errorLine.add(skipLine);
                     tokens.add(new Token(-1, "调性格式错误！", count));
-                    return;
                 }
             }
 
@@ -387,7 +387,7 @@ public class Lexical {
                     }
 
                     //检查旋律中是否出现非法字符
-                    if (!isNote(inputWord.charAt(i)) && inputWord.charAt(i) != '(' && inputWord.charAt(i) != ')' && inputWord.charAt(i) != 'b' && inputWord.charAt(i) != '#'&& inputWord.charAt(i) != '|') {
+                    if (isNote(inputWord.charAt(i)) && inputWord.charAt(i) != '(' && inputWord.charAt(i) != ')' && inputWord.charAt(i) != 'b' && inputWord.charAt(i) != '#' && inputWord.charAt(i) != '|') {
                         //出现非法字符时，将非法字符之前的字符分析
                         for (int j = 0; j < i; j++) {
                             Scanner(String.valueOf(inputWord.charAt(j)), false);
@@ -399,7 +399,7 @@ public class Lexical {
                     }
                 }
                 //如果输入不属于01234567，则报错
-                if (!isNote(inputWord.charAt(0))) {
+                if (isNote(inputWord.charAt(0))) {
                     skipLine = count;
                     errorLine.add(skipLine);
                     tokens.add(new Token(-1, "旋律中出现非法字符：" + inputWord.charAt(0), count));
@@ -447,11 +447,11 @@ public class Lexical {
             tokens.add(new Token(syn, String.valueOf(inputWord.charAt(0)), count));
             if (inputWord.length() > 1)
                 Scanner(inputWord.substring(1), false);
-        }else if (inputWord.charAt(0) == '|') {
-                syn = 22;
-                tokens.add(new Token(syn, String.valueOf(inputWord.charAt(0)), count));
-                if (inputWord.length() > 1)
-                    Scanner(inputWord.substring(1), false);
+        } else if (inputWord.charAt(0) == '|') {
+            syn = 22;
+            tokens.add(new Token(syn, String.valueOf(inputWord.charAt(0)), count));
+            if (inputWord.length() > 1)
+                Scanner(inputWord.substring(1), false);
         }
 
         //以<开头时，将输入字符串视为时长
@@ -501,7 +501,6 @@ public class Lexical {
                 skipLine = count;
                 errorLine.add(skipLine);
                 tokens.add(new Token(-1, "时长句子格式错误", count));
-                return;
             }
 
         }
@@ -513,9 +512,9 @@ public class Lexical {
                 Scanner(inputWord.substring(1), false);
         }
         //输入为\n时，直接返回（已在Lex函数中添加换行token）
-        else if (inputWord.equals("\n"))
-            return;
-            //其他非法字符开头则报错
+        else if (inputWord.equals("\n")) {
+        }
+        //其他非法字符开头则报错
         else {
             skipLine = count;
             errorLine.add(skipLine);
@@ -523,9 +522,8 @@ public class Lexical {
         }
     }
 
-    public ArrayList<Token> Lex(String input) {
+    public List<Token> Lex(String input) {
         skipLine = -1;
-        count = 1;
         tokens = new ArrayList();
         errorLine = new ArrayList<>();
         //初始化行号
@@ -544,8 +542,8 @@ public class Lexical {
         int start = 0;
         for (int i = 0; i < input.length(); i++) {
             //start==i且当前字符为空格时继续以略过连续空格
-            if (i < input.length() && input.charAt(i) == ' ' && start == i) {
-                while (i < input.length() && input.charAt(i) == ' ' && start == i) {
+            if (input.charAt(i) == ' ' && start == i) {
+                while (i < input.length() && input.charAt(i) == ' ') {
                     i++;
                     start = i;
                 }
@@ -557,10 +555,7 @@ public class Lexical {
                 String temp = input.substring(start, i);
                 Scanner(temp, isIdentifier);
                 //若该字符串为paragraph或score，则当前行之后跟着的字符串应为标识符
-                if (temp.equals("paragraph") || temp.equals("score"))
-                    isIdentifier = true;
-                else
-                    isIdentifier = false;
+                isIdentifier = temp.equals("paragraph") || temp.equals("score");
                 start = i + 1;
                 continue;
             }
@@ -579,34 +574,34 @@ public class Lexical {
                 String temp = input.substring(start, i + 1);
                 Scanner(temp, isIdentifier);
                 start = i;
-                lastLine = count;
             }
         }
 
         return tokens;
     }
 
-    public String getErrorInfo(ArrayList<Token> tokens) {
-        String errorInfo = "";
+    public String getErrorInfo(List<Token> tokens) {
+        StringBuilder errorInfo = new StringBuilder();
         for (Token temp : tokens) {
             if (temp.getType() == -1)
-                if(temp.getLine()==-1)
-                    errorInfo += temp.getContent() + "\n";
+                if (temp.getLine() == -1)
+                    errorInfo.append(temp.getContent()).append("\n");
                 else
-                    errorInfo += "Line" + temp.getLine() + "\t" + temp.getContent() + "\n";
+                    errorInfo.append("Line").append(temp.getLine()).append("\t").append(temp.getContent()).append("\n");
         }
-        return errorInfo;
+        return errorInfo.toString();
     }
 
     public boolean getError() {
         return !errorLine.isEmpty();
     }
 
-    public ArrayList<Integer> getErrorLine() {
+    public List<Integer> getErrorLine() {
         return errorLine;
     }
 
-    public ArrayList<Token> getTokens(){
+    public List<Token> getTokens() {
         return tokens;
     }
+
 }

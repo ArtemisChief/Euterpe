@@ -9,9 +9,13 @@ import java.util.ArrayList;
  */
 
 public class Node {
+
     private ArrayList<Node> childNodes;
+
     private String content;
+
     private String type;
+
     private int line;
 
     public Node(String type) {
@@ -62,4 +66,5 @@ public class Node {
     public String toString() {
         return String.format("%s\n", type);
     }
+
 }
