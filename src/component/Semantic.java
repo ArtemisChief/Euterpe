@@ -371,6 +371,12 @@ public class Semantic {
                                 break;
                             }
 
+                            while (!bufferNotes.isEmpty()) {
+                                tempNote = bufferNotes.poll();
+                                midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
+                                reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
+                            }
+
                             for (boolean isPrimary = true; true; isPrimary = false) {
                                 midiTrack.insertNoteOn(channel, noteList.get(i).byteValue(), (byte) 120);
                                 tempNote = new Note(durationList.get(i), noteList.get(i++).byteValue(), isPrimary);

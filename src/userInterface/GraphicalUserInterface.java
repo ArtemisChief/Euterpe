@@ -13,19 +13,16 @@ import entity.interpreter.Token;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,7 +47,6 @@ public class GraphicalUserInterface extends JFrame {
     private SimpleAttributeSet commentAttributeSet;
     private SimpleAttributeSet errorAttributeSet;
 
-    private StyledDocument inputStyledDocument;
 
     private Pattern statementPattern;
     private Pattern keywordPattern;
@@ -72,6 +68,72 @@ public class GraphicalUserInterface extends JFrame {
 
     private java.util.Timer timer;
 
+    private class MyDocument extends DefaultStyledDocument {
+        @Override
+        public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+            int incr = 1;
+            //处理按键映射
+            if (str.equals("0") || str.equals("1") || str.equals("2") || str.equals("3") || str.equals("4") ||
+                    str.equals("5") || str.equals("6") || str.equals("7") || str.equals("8") || str.equals("9")) {
+                str = noteMapping[Integer.parseInt(str)];
+                incr=str.length();
+            }
+
+                //处理自动补全
+            else {
+                String text = inputTextPane.getText().replace("\r", "");
+                char b;
+                if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b == ')' || b == ']' || (offs > 0 && text.charAt(offs - 1) == '/')) {
+                    switch (str) {
+                        case "(":
+                            str += ")";
+                            break;
+                        case "[":
+                            str += "]";
+                            break;
+                        case "{":
+                            str += "}";
+                            break;
+                        case "<":
+                            str += ">";
+                            break;
+                        case "|":
+                            str += "|";
+                            break;
+                        case "*":
+                            str += "\n\n*/";
+                            incr = 2;
+                            break;
+                    }
+                }
+            }
+
+
+            super.insertString(offs, str, a);
+            inputTextPane.setCaretPosition(offs + incr);
+            contentChanged();
+        }
+
+        @Override
+        public void remove(int offs, int len) throws BadLocationException {
+            //自动删除界符
+            if (offs < inputTextPane.getText().replace("\r", "").length() - 1) {
+                char a = inputTextPane.getText().replace("\r", "").charAt(offs);
+                char b = inputTextPane.getText().replace("\r", "").charAt(offs + 1);
+                if ((a == '(' && b == ')') || (a == '[' && b == ']') || (a == '{' && b == '}') || (a == '<' && b == '>') || (a == '|' && b == '|')) {
+                    len++;
+                }
+            }
+
+            super.remove(offs, len);
+            contentChanged();
+        }
+    }
+    private MyDocument inputStyledDocument;
+
+    private String[] noteMapping;
+    private boolean isNoteMappingPageOpen;
+
     //初始化与案件绑定
     public GraphicalUserInterface() {
         initComponents();
@@ -91,7 +153,8 @@ public class GraphicalUserInterface extends JFrame {
         StyleConstants.setForeground(durationAttributeSet, new Color(111, 150, 255));
         StyleConstants.setForeground(commentAttributeSet, new Color(128, 128, 128));
         StyleConstants.setForeground(errorAttributeSet, new Color(238, 0, 1));
-        inputStyledDocument = inputTextPane.getStyledDocument();
+        inputStyledDocument = new MyDocument();
+        inputTextPane.setDocument(inputStyledDocument);
         statementPattern = Pattern.compile("\\bparagraph\\b|\\bend\\b|\\bplay");
         keywordPattern = Pattern.compile("\\bspeed=|\\binstrument=|\\bvolume=|\\b1=");
         parenPattern = Pattern.compile("<(\\s*\\{?\\s*(1|2|4|8|g|w|\\*)+\\s*\\}?\\s*)+>");
@@ -100,6 +163,10 @@ public class GraphicalUserInterface extends JFrame {
         inputStatusList = new ArrayList<>();
         inputStatusListMax = -1;
         inputStatusListIndex = 0;
+
+        //数字键映射
+        noteMapping = new String[]{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+        isNoteMappingPageOpen = false;
 
         //关闭窗口提示
         addWindowListener(new WindowAdapter() {
@@ -110,19 +177,17 @@ public class GraphicalUserInterface extends JFrame {
             }
         });
 
+        //按键映射保存按键的监听
+        outputTextPane.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (isNoteMappingPageOpen && e.getKeyCode() == KeyEvent.VK_S && e.isControlDown())
+                    saveNoteMapping();
+            }
+        });
+
         //着色与补全、快捷键等的监听
         inputTextPane.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                if (!e.isActionKey()) {
-                    if (e.getKeyCode() != KeyEvent.VK_BACK_SPACE)
-                        autoComplete();
-
-                    refreshColor();
-                }
-            }
-
-
             @Override
             public void keyPressed(KeyEvent e) {
                 if (!e.isControlDown() && e.getKeyCode() != KeyEvent.VK_CONTROL)
@@ -134,51 +199,23 @@ public class GraphicalUserInterface extends JFrame {
                 if (e.getKeyCode() == KeyEvent.VK_LEFT)
                     backwardMenuItemActionPerformed(null);
 
-                if (e.getKeyCode() == KeyEvent.VK_RIGHT)
-                    if (e.isControlDown())
-                        fastForwardMenuItemActionPerformed(null);
+                if (e.getKeyCode() == KeyEvent.VK_RIGHT && e.isControlDown())
+                    fastForwardMenuItemActionPerformed(null);
 
-                if (e.getKeyCode() == KeyEvent.VK_LEFT)
-                    if (e.isControlDown())
-                        fastBackwardMenuItemActionPerformed(null);
+                if (e.getKeyCode() == KeyEvent.VK_LEFT && e.isControlDown())
+                    fastBackwardMenuItemActionPerformed(null);
 
-                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-                    autoRemove();
-                    refreshColor();
-                }
+                if (e.getKeyCode() == KeyEvent.VK_V && e.isControlDown())
+                    saveInputStatus();
 
-                if (e.getKeyCode() == KeyEvent.VK_V)
-                    if (e.isControlDown())
-                        saveInputStatus();
+                if (e.getKeyCode() == KeyEvent.VK_S && e.isControlDown())
+                    saveMenuItemActionPerformed(null);
 
-                if (e.getKeyCode() == KeyEvent.VK_S)
-                    if (e.isControlDown())
-                        saveMenuItemActionPerformed(null);
+                if (e.getKeyCode() == KeyEvent.VK_Z && e.isControlDown())
+                    undo();
 
-                if (e.getKeyCode() == KeyEvent.VK_Z)
-                    if (e.isControlDown())
-                        undo();
-
-                if (e.getKeyCode() == KeyEvent.VK_Y)
-                    if (e.isControlDown())
-                        redo();
-            }
-        });
-
-        //是否有改动的监听
-        inputTextPane.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                contentChanged();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                contentChanged();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_Y && e.isControlDown())
+                    redo();
             }
         });
 
@@ -229,7 +266,6 @@ public class GraphicalUserInterface extends JFrame {
             InputStatus inputStatus = inputStatusList.get(--inputStatusListIndex);
             inputTextPane.setText(inputStatus.inputString);
             inputTextPane.setCaretPosition(inputStatus.caretPos);
-            refreshColor();
         }
     }
 
@@ -239,12 +275,13 @@ public class GraphicalUserInterface extends JFrame {
             InputStatus inputStatus = inputStatusList.get(++inputStatusListIndex);
             inputTextPane.setText(inputStatus.inputString);
             inputTextPane.setCaretPosition(inputStatus.caretPos);
-            refreshColor();
         }
     }
 
     //内容变动调用的函数
     private void contentChanged() {
+        refreshColor();
+
         if (hasChanged)
             return;
 
@@ -268,59 +305,6 @@ public class GraphicalUserInterface extends JFrame {
             }
         }
         return true;
-    }
-
-    //自动删除界符
-    private void autoRemove() {
-        StringBuilder input = new StringBuilder(inputTextPane.getText().replace("\r", ""));
-        int pos = inputTextPane.getCaretPosition();
-        if (input.length() > 1 && pos < input.length() && pos > 0) {
-            if ((input.charAt(pos - 1) == '(' && input.charAt(pos) == ')') ||
-                    (input.charAt(pos - 1) == '[' && input.charAt(pos) == ']') ||
-                    (input.charAt(pos - 1) == '<' && input.charAt(pos) == '>') ||
-                    (input.charAt(pos - 1) == '{' && input.charAt(pos) == '}')) {
-                input.deleteCharAt(pos);
-                inputTextPane.setText(input.toString());
-                inputTextPane.setCaretPosition(pos);
-            }
-        }
-    }
-
-    //自动补全界符与注释符号
-    private void autoComplete() {
-        StringBuilder input = new StringBuilder(inputTextPane.getText().replace("\r", ""));
-        int pos = inputTextPane.getCaretPosition();
-        if (pos > 0) {
-            if (pos < input.length() && (input.substring(pos, pos + 1).equals(" ") || input.substring(pos, pos + 1).equals("\n") || input.substring(pos, pos + 1).equals(")") || input.substring(pos, pos + 1).equals("]")) || pos == input.length())
-                switch (input.charAt(pos - 1)) {
-                    case '(':
-                        input.insert(pos, ')');
-                        inputTextPane.setText(input.toString());
-                        inputTextPane.setCaretPosition(pos);
-                        return;
-                    case '[':
-                        input.insert(pos, ']');
-                        inputTextPane.setText(input.toString());
-                        inputTextPane.setCaretPosition(pos);
-                        return;
-                    case '<':
-                        input.insert(pos, '>');
-                        inputTextPane.setText(input.toString());
-                        inputTextPane.setCaretPosition(pos);
-                        return;
-                    case '{':
-                        input.insert(pos, '}');
-                        inputTextPane.setText(input.toString());
-                        inputTextPane.setCaretPosition(pos);
-                        return;
-                    case '*':
-                        if (input.charAt(pos - 2) == '/') {
-                            input.insert(inputTextPane.getCaretPosition(), "\n\n*/");
-                            inputTextPane.setText(input.toString());
-                            inputTextPane.setCaretPosition(pos + 1);
-                        }
-                }
-        }
     }
 
     //代码着色
@@ -453,7 +437,6 @@ public class GraphicalUserInterface extends JFrame {
                     "play(Name1&Name2)";
             inputTextPane.setText(str);
             inputTextPane.setCaretPosition(0);
-            refreshColor();
 
             outputTextPane.setText("");
             hasChanged = false;
@@ -488,7 +471,6 @@ public class GraphicalUserInterface extends JFrame {
             inputTextPane.setText(stringBuilder.toString());
             inputTextPane.setCaretPosition(0);
             outputTextPane.setText("");
-            refreshColor();
             hasSaved = true;
             hasChanged = false;
             stopDirectMenuItemActionPerformed(null);
@@ -552,7 +534,7 @@ public class GraphicalUserInterface extends JFrame {
         }
     }
 
-    //通过行号找到改行第一个字符在输入字符串中的位置
+    //通过行号找到该行第一个字符在输入字符串中的位置
     private int getIndexByLine(int line) {
         int index = 0;
         String input = inputTextPane.getText().replace("\r", "") + "\n";
@@ -606,7 +588,7 @@ public class GraphicalUserInterface extends JFrame {
         return AbstractSyntaxTree;
     }
 
-    //Midi语义分析
+    //语义分析
     private String runMidiSem(Node abstractSyntaxTree, StringBuilder output) {
         String code = semantic.interpret(abstractSyntaxTree);
 
@@ -635,6 +617,9 @@ public class GraphicalUserInterface extends JFrame {
 
         if (inputTextPane.getText().isEmpty())
             return false;
+
+        isNoteMappingPageOpen = false;
+        setOutputTextPaneEditable(false);
 
         List<Token> tokens = runLex(inputTextPane.getText(), stringBuilder);
 
@@ -713,6 +698,7 @@ public class GraphicalUserInterface extends JFrame {
         tipsMenuItem.setEnabled(!flag);
         aboutMenuItem.setEnabled(!flag);
         demoMenuItem.setEnabled(!flag);
+        setNoteMappingMenuItem.setEnabled(!flag);
     }
 
     //读取SoundFont
@@ -746,6 +732,8 @@ public class GraphicalUserInterface extends JFrame {
             midiPlayer.play();
             playDirectMenuItem.setText("Pause");
             forbidOutputButton(true);
+            isNoteMappingPageOpen = false;
+            setOutputTextPaneEditable(false);
         }
 
         if (timer == null)
@@ -810,8 +798,161 @@ public class GraphicalUserInterface extends JFrame {
         fastMove(-5);
     }
 
+    //设置输出面板是否可编辑
+    private void setOutputTextPaneEditable(Boolean flag) {
+        outputTextPane.setEditable(flag);
+
+        if (flag) {
+            outputTextPane.setSelectedTextColor(Color.white);
+            outputTextPane.setSelectionColor(new Color(26, 125, 196));
+        } else {
+            outputTextPane.setSelectedTextColor(new Color(60, 60, 60));
+            outputTextPane.setSelectionColor(Color.white);
+        }
+    }
+
+    //设置按键映射
+    private void setNoteMappingMenuItemActionPerformed(ActionEvent e) {
+        isNoteMappingPageOpen = true;
+        setOutputTextPaneEditable(true);
+
+        String str = "============================================\n" +
+                " \t\t  Set Note Mapping\n" +
+                "-------------------------------------------------------------------------\n" +
+                "* 此处用于设置数字键与音符的映射关系\n" +
+                "\n" +
+                "1.设置说明：\n" +
+                "\t1）需要修改的内容为“->”符号之后的内容\n" +
+                "\t2）理论上可以修改为任意值，长度不固定，数字字母皆可\n" +
+                "\t3）请保持此页面格式进行修改，不能删除空格，如1->#1，\n" +
+                "\t4）上一条示例意为按下数字键1输入#1，方便扒谱处理调性\n" +
+                "\t5）设置完成之后请在此文本框内使用Ctrl+S保存设置\n" +
+                "--------------------------------------------------------------------------\n" +
+                "\t0 -> " + noteMapping[0] + "\n" +
+                "\n" +
+                "\t1 -> " + noteMapping[1] + "\n" +
+                "\n" +
+                "\t2 -> " + noteMapping[2] + "\n" +
+                "\n" +
+                "\t3 -> " + noteMapping[3] + "\n" +
+                "\n" +
+                "\t4 -> " + noteMapping[4] + "\n" +
+                "\n" +
+                "\t5 -> " + noteMapping[5] + "\n" +
+                "\n" +
+                "\t6 -> " + noteMapping[6] + "\n" +
+                "\n" +
+                "\t7 -> " + noteMapping[7] + "\n" +
+                "\n" +
+                "\t8 -> " + noteMapping[8] + "\n" +
+                "\n" +
+                "\t9 -> " + noteMapping[9] + "\n" +
+                "============================================";
+
+        outputTextPane.setText(str);
+        outputTextPane.setCaretPosition(0);
+    }
+
+    //保存按键映射
+    private void saveNoteMapping() {
+        String str = outputTextPane.getText();
+
+        Pattern pattern = Pattern.compile("\\d -> \\S+");
+
+        Matcher matcher = pattern.matcher(str);
+
+        int index = 0;
+        String[] tempNoteMapping = new String[10];
+
+        while (matcher.find()) {
+            String temp = matcher.group();
+            if (index < 10 && Integer.parseInt(temp.substring(0, 1)) == index) {
+                tempNoteMapping[index] = temp.replace(" ", "").substring(3);
+                index++;
+            } else
+                break;
+        }
+
+        String out;
+
+        if (index != 10) {
+            out = "============================================\n" +
+                    " \t\t  Set Note Mapping\n" +
+                    "-------------------------------------------------------------------------\n" +
+                    "* !!发现格式错误，请保持此页面格式进行修改!!\n" +
+                    "\n" +
+                    "1.设置说明：\n" +
+                    "\t1）需要修改的内容为“->”符号之后的内容\n" +
+                    "\t2）理论上可以修改为任意值，长度不固定，数字字母皆可\n" +
+                    "\t3）请保持此页面格式进行修改，不能删除空格，如1->#1，\n" +
+                    "\t4）上一条示例意为按下数字键1输入#1，方便扒谱处理调性\n" +
+                    "\t5）设置完成之后请在此文本框内使用Ctrl+S保存设置\n" +
+                    "--------------------------------------------------------------------------\n" +
+                    "\t0 -> " + noteMapping[0] + "\n" +
+                    "\n" +
+                    "\t1 -> " + noteMapping[1] + "\n" +
+                    "\n" +
+                    "\t2 -> " + noteMapping[2] + "\n" +
+                    "\n" +
+                    "\t3 -> " + noteMapping[3] + "\n" +
+                    "\n" +
+                    "\t4 -> " + noteMapping[4] + "\n" +
+                    "\n" +
+                    "\t5 -> " + noteMapping[5] + "\n" +
+                    "\n" +
+                    "\t6 -> " + noteMapping[6] + "\n" +
+                    "\n" +
+                    "\t7 -> " + noteMapping[7] + "\n" +
+                    "\n" +
+                    "\t8 -> " + noteMapping[8] + "\n" +
+                    "\n" +
+                    "\t9 -> " + noteMapping[9] + "\n" +
+                    "============================================";
+        } else {
+            noteMapping = tempNoteMapping;
+            out = "============================================\n" +
+                    " \t\t  Set Note Mapping\n" +
+                    "-------------------------------------------------------------------------\n" +
+                    "* 此处用于设置数字键与音符的映射关系（已保存）\n" +
+                    "\n" +
+                    "1.设置说明：\n" +
+                    "\t1）需要修改的内容为“->”符号之后的内容\n" +
+                    "\t2）理论上可以修改为任意值，长度不固定，数字字母皆可\n" +
+                    "\t3）请保持此页面格式进行修改，不能删除空格，如1->#1，\n" +
+                    "\t4）上一条示例意为按下数字键1输入#1，方便扒谱处理调性\n" +
+                    "\t5）设置完成之后请在此文本框内使用Ctrl+S保存设置\n" +
+                    "--------------------------------------------------------------------------\n" +
+                    "\t0 -> " + noteMapping[0] + "\n" +
+                    "\n" +
+                    "\t1 -> " + noteMapping[1] + "\n" +
+                    "\n" +
+                    "\t2 -> " + noteMapping[2] + "\n" +
+                    "\n" +
+                    "\t3 -> " + noteMapping[3] + "\n" +
+                    "\n" +
+                    "\t4 -> " + noteMapping[4] + "\n" +
+                    "\n" +
+                    "\t5 -> " + noteMapping[5] + "\n" +
+                    "\n" +
+                    "\t6 -> " + noteMapping[6] + "\n" +
+                    "\n" +
+                    "\t7 -> " + noteMapping[7] + "\n" +
+                    "\n" +
+                    "\t8 -> " + noteMapping[8] + "\n" +
+                    "\n" +
+                    "\t9 -> " + noteMapping[9] + "\n" +
+                    "============================================";
+        }
+
+        outputTextPane.setText(out);
+        outputTextPane.setCaretPosition(0);
+    }
+
     //关于
     private void aboutMenuItemActionPerformed(ActionEvent e) {
+        isNoteMappingPageOpen = false;
+        setOutputTextPaneEditable(false);
+
         String str = "============================================\n" +
                 "\t               Music Language Interpreter\n" +
                 "\n" +
@@ -895,7 +1036,6 @@ public class GraphicalUserInterface extends JFrame {
                     "play(soprano&alto)";
             inputTextPane.setText(str);
             inputTextPane.setCaretPosition(0);
-            refreshColor();
             hasChanged = false;
             isLoadedMidiFile = false;
 
@@ -907,6 +1047,9 @@ public class GraphicalUserInterface extends JFrame {
 
     //显示提示
     private void tipsMenuItemActionPerformed(ActionEvent e) {
+        isNoteMappingPageOpen = false;
+        setOutputTextPaneEditable(false);
+
         String str = "============================================\n" +
                 "                                                  Tips\n" +
                 "-------------------------------------------------------------------------\n" +
@@ -943,6 +1086,9 @@ public class GraphicalUserInterface extends JFrame {
 
     //显示乐器列表
     private void instruMenuItemActionPerformed(ActionEvent e) {
+        isNoteMappingPageOpen = false;
+        setOutputTextPaneEditable(false);
+
         String str = "===========================================\n" +
                 "                                            Instrument\n" +
                 "-----------------------------------------------------------------------\n" +
@@ -1067,6 +1213,8 @@ public class GraphicalUserInterface extends JFrame {
         backwardMenuItem = new JMenuItem();
         fastForwardMenuItem = new JMenuItem();
         fastBackwardMenuItem = new JMenuItem();
+        toolMenu = new JMenu();
+        setNoteMappingMenuItem = new JMenuItem();
         helpMenu = new JMenu();
         instruMenuItem = new JMenuItem();
         tipsMenuItem = new JMenuItem();
@@ -1096,35 +1244,35 @@ public class GraphicalUserInterface extends JFrame {
 
                 //---- newEmptyMenuItem ----
                 newEmptyMenuItem.setText("New - Empty");
-                newEmptyMenuItem.addActionListener(this::newEmptyMenuItemActionPerformed);
+                newEmptyMenuItem.addActionListener(e -> newEmptyMenuItemActionPerformed(e));
                 fileMenu.add(newEmptyMenuItem);
 
                 //---- newMenuItem ----
                 newMenuItem.setText("New - Template");
-                newMenuItem.addActionListener(this::newMenuItemActionPerformed);
+                newMenuItem.addActionListener(e -> newMenuItemActionPerformed(e));
                 fileMenu.add(newMenuItem);
                 fileMenu.add(separator2);
 
                 //---- openMenuItem ----
                 openMenuItem.setText("Open");
-                openMenuItem.addActionListener(this::openMenuItemActionPerformed);
+                openMenuItem.addActionListener(e -> openMenuItemActionPerformed(e));
                 fileMenu.add(openMenuItem);
                 fileMenu.add(separator3);
 
                 //---- saveMenuItem ----
                 saveMenuItem.setText("Save");
-                saveMenuItem.addActionListener(this::saveMenuItemActionPerformed);
+                saveMenuItem.addActionListener(e -> saveMenuItemActionPerformed(e));
                 fileMenu.add(saveMenuItem);
 
                 //---- saveAsMenuItem ----
                 saveAsMenuItem.setText("Save As...");
-                saveAsMenuItem.addActionListener(this::saveAsMenuItemActionPerformed);
+                saveAsMenuItem.addActionListener(e -> saveAsMenuItemActionPerformed(e));
                 fileMenu.add(saveAsMenuItem);
                 fileMenu.add(separator4);
 
                 //---- exitMenuItem ----
                 exitMenuItem.setText("Exit");
-                exitMenuItem.addActionListener(this::exitMenuItemActionPerformed);
+                exitMenuItem.addActionListener(e -> exitMenuItemActionPerformed(e));
                 fileMenu.add(exitMenuItem);
             }
             menuBar1.add(fileMenu);
@@ -1135,12 +1283,12 @@ public class GraphicalUserInterface extends JFrame {
 
                 //---- exportMidiMenuItem ----
                 exportMidiMenuItem.setText("Export Midi File");
-                exportMidiMenuItem.addActionListener(this::generateMidiMenuItemActionPerformed);
+                exportMidiMenuItem.addActionListener(e -> generateMidiMenuItemActionPerformed(e));
                 runMenu.add(exportMidiMenuItem);
 
                 //---- playMenuItem ----
                 playMenuItem.setText("Play Midi File");
-                playMenuItem.addActionListener(this::playMenuItemActionPerformed);
+                playMenuItem.addActionListener(e -> playMenuItemActionPerformed(e));
                 runMenu.add(playMenuItem);
             }
             menuBar1.add(runMenu);
@@ -1151,43 +1299,54 @@ public class GraphicalUserInterface extends JFrame {
 
                 //---- loadSoundFontMenuItem ----
                 loadSoundFontMenuItem.setText("Load SoundFont");
-                loadSoundFontMenuItem.addActionListener(this::loadSoundFontMenuItemActionPerformed);
+                loadSoundFontMenuItem.addActionListener(e -> loadSoundFontMenuItemActionPerformed(e));
                 playerMenu.add(loadSoundFontMenuItem);
                 playerMenu.addSeparator();
 
                 //---- playDirectMenuItem ----
                 playDirectMenuItem.setText("Play");
-                playDirectMenuItem.addActionListener(this::playDirectMenuItemActionPerformed);
+                playDirectMenuItem.addActionListener(e -> playDirectMenuItemActionPerformed(e));
                 playerMenu.add(playDirectMenuItem);
 
                 //---- stopDirectMenuItem ----
                 stopDirectMenuItem.setText("Stop");
-                stopDirectMenuItem.addActionListener(this::stopDirectMenuItemActionPerformed);
+                stopDirectMenuItem.addActionListener(e -> stopDirectMenuItemActionPerformed(e));
                 playerMenu.add(stopDirectMenuItem);
                 playerMenu.addSeparator();
 
                 //---- forwardMenuItem ----
                 forwardMenuItem.setText("Forward");
-                forwardMenuItem.addActionListener(this::forwardMenuItemActionPerformed);
+                forwardMenuItem.addActionListener(e -> forwardMenuItemActionPerformed(e));
                 playerMenu.add(forwardMenuItem);
 
                 //---- backwardMenuItem ----
                 backwardMenuItem.setText("Backward");
-                backwardMenuItem.addActionListener(this::backwardMenuItemActionPerformed);
+                backwardMenuItem.addActionListener(e -> backwardMenuItemActionPerformed(e));
                 playerMenu.add(backwardMenuItem);
                 playerMenu.addSeparator();
 
                 //---- fastForwardMenuItem ----
                 fastForwardMenuItem.setText("Fast Forward");
-                fastForwardMenuItem.addActionListener(this::fastForwardMenuItemActionPerformed);
+                fastForwardMenuItem.addActionListener(e -> fastForwardMenuItemActionPerformed(e));
                 playerMenu.add(fastForwardMenuItem);
 
                 //---- fastBackwardMenuItem ----
                 fastBackwardMenuItem.setText("Fast Backward");
-                fastBackwardMenuItem.addActionListener(this::fastBackwardMenuItemActionPerformed);
+                fastBackwardMenuItem.addActionListener(e -> fastBackwardMenuItemActionPerformed(e));
                 playerMenu.add(fastBackwardMenuItem);
             }
             menuBar1.add(playerMenu);
+
+            //======== toolMenu ========
+            {
+                toolMenu.setText("Tool");
+
+                //---- setNoteMappingMenuItem ----
+                setNoteMappingMenuItem.setText("Set Note Mapping");
+                setNoteMappingMenuItem.addActionListener(e -> setNoteMappingMenuItemActionPerformed(e));
+                toolMenu.add(setNoteMappingMenuItem);
+            }
+            menuBar1.add(toolMenu);
 
             //======== helpMenu ========
             {
@@ -1195,22 +1354,22 @@ public class GraphicalUserInterface extends JFrame {
 
                 //---- instruMenuItem ----
                 instruMenuItem.setText("Instruments");
-                instruMenuItem.addActionListener(this::instruMenuItemActionPerformed);
+                instruMenuItem.addActionListener(e -> instruMenuItemActionPerformed(e));
                 helpMenu.add(instruMenuItem);
 
                 //---- tipsMenuItem ----
                 tipsMenuItem.setText("Tips");
-                tipsMenuItem.addActionListener(this::tipsMenuItemActionPerformed);
+                tipsMenuItem.addActionListener(e -> tipsMenuItemActionPerformed(e));
                 helpMenu.add(tipsMenuItem);
 
                 //---- demoMenuItem ----
                 demoMenuItem.setText("Demo");
-                demoMenuItem.addActionListener(this::demoMenuItemActionPerformed);
+                demoMenuItem.addActionListener(e -> demoMenuItemActionPerformed(e));
                 helpMenu.add(demoMenuItem);
 
                 //---- aboutMenuItem ----
                 aboutMenuItem.setText("About");
-                aboutMenuItem.addActionListener(this::aboutMenuItemActionPerformed);
+                aboutMenuItem.addActionListener(e -> aboutMenuItemActionPerformed(e));
                 helpMenu.add(aboutMenuItem);
             }
             menuBar1.add(helpMenu);
@@ -1263,6 +1422,7 @@ public class GraphicalUserInterface extends JFrame {
                 outputTextPane.setBorder(null);
                 outputTextPane.setSelectionColor(Color.white);
                 outputTextPane.setSelectedTextColor(new Color(60, 60, 60));
+                outputTextPane.setEditable(false);
                 scrollPane2.setViewportView(outputTextPane);
             }
             panel1.add(scrollPane2, "cell 2 0,width 460:460:1005,height 640:640:1080");
@@ -1296,6 +1456,8 @@ public class GraphicalUserInterface extends JFrame {
     private JMenuItem backwardMenuItem;
     private JMenuItem fastForwardMenuItem;
     private JMenuItem fastBackwardMenuItem;
+    private JMenu toolMenu;
+    private JMenuItem setNoteMappingMenuItem;
     private JMenu helpMenu;
     private JMenuItem instruMenuItem;
     private JMenuItem tipsMenuItem;

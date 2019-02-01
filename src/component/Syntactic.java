@@ -60,8 +60,8 @@ public class Syntactic {
         }
 
 //        if (index<tokens.size()) {
-//            errorList.add(tokens.get(index).getCount());
-//            AbstractSyntaxTree.addChild(new Node("Error","Line:" + tokens.get(index).getCount() + "  乐谱请写再play语句之前！"));
+//            errorList.add(tokens.get(index).getLine());
+//            AbstractSyntaxTree.addChild(new Node("Error","Line:" + tokens.get(index).getLine() + "  乐谱请写再play语句之前！"));
 //        }
 
         return AbstractSyntaxTree;
@@ -86,8 +86,7 @@ public class Syntactic {
 
         //identifier(段落名)
         if (tokens.get(index).getType() != 100) {
-            int syn = tokens.get(index).getType();
-            if (syn != 3 && syn != 4 && syn != 7 && syn != 9 && syn != 18 && syn != 19 && syn != 20 && syn != 21 && syn != 94 && syn != 98)
+            if (!isAttributeIdentifier() && !isMelodyElement())
                 nextLine();
             statement.addChild(new Node("Error", "Line: " + tokens.get(index - 1).getLine() + "  缺少标识符"));
             errorList.add(tokens.get(index - 1).getLine());
@@ -101,8 +100,7 @@ public class Syntactic {
 
         int tempSyn = tokens.get(index).getType();
         boolean hadSpeed = false, hadTone = false, hadInstrument = false, hadVolume = false;
-        while (index < tokens.size() && (tempSyn != 18 && tempSyn != 19 && tempSyn != 7 && tempSyn != 9 && tempSyn != 94 && tempSyn != 98 && tempSyn != 5)) {
-            //提前遇到paragraph或play
+        while (!hadReadToEnd() && !paragraphHadEnd() && !isMelodyElement()) {            //提前遇到paragraph或play
             if (tempSyn == 2 | tempSyn == 6) {
                 errorList.add(tokens.get(index).getLine());
                 paragraph.addChild(new Node("Error", "Line: " + tokens.get(index).getLine() + "  缺少end标识"));
@@ -185,7 +183,7 @@ public class Syntactic {
 
 
         //{ sentence }
-        while (index < tokens.size() && (tokens.get(index).getType() != 5)) {
+        while (!hadReadToEnd() && (tokens.get(index).getType() != 5)) {
             //没遇到end就遇到play或paragraph
             if (tokens.get(index).getType() == 6 | tokens.get(index).getType() == 2) {
                 paragraph.addChild(new Node("Error", "Line: " + tokens.get(index - 1).getLine() + "  缺少end标识"));
@@ -250,15 +248,15 @@ public class Syntactic {
 
     //speed -> 'speed=' speedNum
     private Node parseSpeed() {
+        //若当前token不为速度标识，设置默认速度
         if (tokens.get(index).getType() != 3) {
             return getSpeed();
         }
+        //否则，获取速度数值
         Node speed = new Node("speed");
         Node terminalNode;
-        index++;
 
-        //乐器编号
-        terminalNode = new Node("speedValue", tokens.get(index).getContent(), tokens.get(index).getLine());
+        terminalNode = new Node("speedValue", tokens.get(++index).getContent(),tokens.get(index).getLine());
         speed.addChild(terminalNode);
         index++;
 
@@ -267,9 +265,12 @@ public class Syntactic {
 
     //tone -> ([#|b] toneValue)|toneValue
     private Node parseTone() {
+        //若当前token不为调性标识，设置默认调性
         if (tokens.get(index).getType() != 4) {
             return getTone();
         }
+
+        //否则，获取调性
         Node tone = new Node("tonality");
         Node terminalNode;
         index++;
@@ -559,8 +560,7 @@ public class Syntactic {
 
         //length
         boolean inCurlyBraces = false;
-        while (index < tokens.size() && (tokens.get(index).getType() != 14)) {
-
+        while (!hadReadToEnd()&&(tokens.get(index).getType() != 14)) {
             //'{'，连音左括号
             if (tokens.get(index).getType() == 11) {
                 if (inCurlyBraces) {
@@ -584,11 +584,11 @@ public class Syntactic {
                     errorList.add(tokens.get(index - 1).getLine());
                     return new Node("Error", "Line: " + tokens.get(index - 1).getLine() + "  缺少连音左括号");
                 }
-                if (tokens.get(index - 1).getType() == 11) {
+                if (tokens.get(index - 1).getType() == 11 | tokens.get(index - 2).getType() == 11) {
                     nextLine();
                     sentenceError = true;
                     errorList.add(tokens.get(index - 1).getLine());
-                    return new Node("Error", "Line: " + tokens.get(index - 1).getLine() + "  连音括号内不能为空");
+                    return new Node("Error", "Line: " + tokens.get(index - 1).getLine() + "  无意义连音括号");
                 }
                 inCurlyBraces = false;
                 terminalNode = new Node("rightCurlyBrace", "}", tokens.get(index).getLine());
@@ -710,7 +710,7 @@ public class Syntactic {
         playlist.addChild(terminalNode);
         index++;
 
-        while (index < tokens.size() && (tokens.get(index).getType() != 8)) {
+        while (!hadReadToEnd() && (tokens.get(index).getType() != 8)) {
             // "&" or ","
             switch (tokens.get(index).getType()) {
                 case 16:
@@ -737,6 +737,34 @@ public class Syntactic {
         }
 
         return playlist;
+    }
+
+    //判断当前token是否为段落属性的标识
+    private boolean isAttributeIdentifier(){
+        int syn = tokens.get(index).getType();
+        return syn == 3 | syn == 4 | syn == 20 | syn == 21;
+    }
+
+    //判断当前token是否为旋律部分的元素
+    private boolean isMelodyElement(){
+        int syn = tokens.get(index).getType();
+        return (syn >= 7 && syn <= 10 ) | syn == 18 | syn == 19 | syn == 22 | syn == 94 | syn == 98;
+    }
+
+    //判断当前token是否为节奏部分的元素
+    public boolean isRhythmElement(){
+        int syn = tokens.get(index).getType();
+        return (syn >= 11 && syn <= 15 ) | syn == 99;
+    }
+
+    //判断段落是否已结束
+    private boolean paragraphHadEnd(){
+        return tokens.get(index).getType() == 5;
+    }
+
+    //判断是否已经读到末尾token
+    private boolean hadReadToEnd(){
+        return !(index < tokens.size());
     }
 
     //换到下一行
