@@ -359,8 +359,8 @@ public class Semantic {
         Note tempNote;
 
         int count = noteList.size();
-        for (int i = 0; i < count; i++) {
-            if (!symbolQueue.isEmpty() && symbolQueue.peek().getValue() == i) {
+        for(int index=0;index<count;index++) {
+            while (!symbolQueue.isEmpty() && symbolQueue.peek().getValue() == index) {
                 //i为符号后一个音符
                 switch (symbolQueue.poll().getKey()) {
                     case 0:
@@ -371,18 +371,18 @@ public class Semantic {
                                 break;
                             }
 
-                            while (!bufferNotes.isEmpty()) {
-                                tempNote = bufferNotes.poll();
-                                midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
-                                reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
-                            }
+//                            while (!bufferNotes.isEmpty()&& bufferNotes.peek().getIsPrimary()) {
+//                                tempNote = bufferNotes.poll();
+//                                midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
+//                                reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
+//                            }
 
                             for (boolean isPrimary = true; true; isPrimary = false) {
-                                midiTrack.insertNoteOn(channel, noteList.get(i).byteValue(), (byte) 120);
-                                tempNote = new Note(durationList.get(i), noteList.get(i++).byteValue(), isPrimary);
+                                midiTrack.insertNoteOn(channel, noteList.get(index).byteValue(), (byte) 80);
+                                tempNote = new Note(durationList.get(index), noteList.get(index++).byteValue(), isPrimary);
                                 bufferNotes.offer(tempNote);
 
-                                if (symbolQueue.peek().getValue() == i)
+                                if (symbolQueue.peek().getValue() == index)
                                     break;
                             }
 
@@ -391,7 +391,8 @@ public class Semantic {
                                 tempNote = bufferNotes.poll();
                                 midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
                                 reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
-                            } while (tempNote.getIsPrimary() != true);
+                            }
+                            while (!bufferNotes.isEmpty() && (tempNote.getIsPrimary() != true || bufferNotes.peek().getDeltaTime() == 0));
                         }
                         break;
 
@@ -405,8 +406,8 @@ public class Semantic {
 
                             do {
                                 //处理连音左括号
-                                i++;
-                            } while (symbolQueue.peek().getValue() != i);
+                                index++;
+                            } while (symbolQueue.peek().getValue() != index);
 
                             //读到连音右括号
                             symbolQueue.poll();
@@ -416,20 +417,21 @@ public class Semantic {
                 }
             }
 
-            if (i < count) {
-                midiTrack.insertNoteOn(channel, noteList.get(i).byteValue(), (byte) 120);
+            if (index < count) {
+                midiTrack.insertNoteOn(channel, noteList.get(index).byteValue(), (byte) 80);
 
                 if (!bufferNotes.isEmpty()) {
                     //同时音
-                    while (!bufferNotes.isEmpty() && durationList.get(i) >= bufferNotes.peek().getDeltaTime()) {
+                    while (!bufferNotes.isEmpty() && durationList.get(index) >= bufferNotes.peek().getDeltaTime()) {
                         tempNote = bufferNotes.poll();
                         midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
                         reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
-                        durationList.set(i, durationList.get(i) - tempNote.getDeltaTime());
+                        durationList.set(index, durationList.get(index) - tempNote.getDeltaTime());
                     }
-                    reduceDeltaTimeInQueue(bufferNotes, durationList.get(i));
+                    reduceDeltaTimeInQueue(bufferNotes, durationList.get(index));
                 }
-                midiTrack.insertNoteOff(durationList.get(i), channel, noteList.get(i).byteValue());
+
+                midiTrack.insertNoteOff(durationList.get(index), channel, noteList.get(index).byteValue());
             }
         }
 
@@ -443,9 +445,8 @@ public class Semantic {
     }
 
     private void reduceDeltaTimeInQueue(Queue<Note> bufferNotes, int deltaTime) {
-        for (Note noteInQueue : bufferNotes) {
+        for (Note noteInQueue : bufferNotes)
             noteInQueue.setDeltaTime(noteInQueue.getDeltaTime() - deltaTime);
-        }
     }
 
     public boolean getIsError() {

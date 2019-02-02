@@ -46,11 +46,12 @@ public class GraphicalUserInterface extends JFrame {
     private SimpleAttributeSet normalAttributeSet;
     private SimpleAttributeSet commentAttributeSet;
     private SimpleAttributeSet errorAttributeSet;
-
+    private SimpleAttributeSet sameTimeNoteAttributeSet;
 
     private Pattern statementPattern;
     private Pattern keywordPattern;
     private Pattern parenPattern;
+    private Pattern sameNotePattern;
 
     private Lexical lexical;
     private Syntactic syntactic;
@@ -71,19 +72,20 @@ public class GraphicalUserInterface extends JFrame {
     private class MyDocument extends DefaultStyledDocument {
         @Override
         public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
-            int incr = 1;
+            boolean isComment = false;
+            boolean isAutoComplete = false;
             //处理按键映射
             if (str.equals("0") || str.equals("1") || str.equals("2") || str.equals("3") || str.equals("4") ||
                     str.equals("5") || str.equals("6") || str.equals("7") || str.equals("8") || str.equals("9")) {
                 str = noteMapping[Integer.parseInt(str)];
-                incr=str.length();
             }
 
-                //处理自动补全
+            //处理自动补全
             else {
                 String text = inputTextPane.getText().replace("\r", "");
                 char b;
-                if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b == ')' || b == ']' || (offs > 0 && text.charAt(offs - 1) == '/')) {
+                if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b==' ' || b == ')' || b == ']' || b == '|' || (offs > 0 && text.charAt(offs - 1) == '/')) {
+                    isAutoComplete = true;
                     switch (str) {
                         case "(":
                             str += ")";
@@ -102,15 +104,24 @@ public class GraphicalUserInterface extends JFrame {
                             break;
                         case "*":
                             str += "\n\n*/";
-                            incr = 2;
+                            isComment = true;
                             break;
                     }
                 }
+
+                if (offs < text.length() && (str.equals(")") || str.equals("]") || str.equals("}") || str.equals(">")) && ((b = text.charAt(offs)) == ')' || b == ']' || b == '}' || b == '>')) {
+                    str = "";
+                    isAutoComplete = true;
+                }
             }
 
-
             super.insertString(offs, str, a);
-            inputTextPane.setCaretPosition(offs + incr);
+
+            if (isAutoComplete)
+                inputTextPane.setCaretPosition(offs + 1);
+            if (isComment)
+                inputTextPane.setCaretPosition(offs + 2);
+
             contentChanged();
         }
 
@@ -146,6 +157,8 @@ public class GraphicalUserInterface extends JFrame {
         normalAttributeSet = new SimpleAttributeSet();
         commentAttributeSet = new SimpleAttributeSet();
         errorAttributeSet = new SimpleAttributeSet();
+        sameTimeNoteAttributeSet=new SimpleAttributeSet();
+
         StyleConstants.setForeground(attributeSet, new Color(92, 101, 192));
         StyleConstants.setBold(attributeSet, true);
         StyleConstants.setForeground(statementAttributeSet, new Color(30, 80, 180));
@@ -153,11 +166,13 @@ public class GraphicalUserInterface extends JFrame {
         StyleConstants.setForeground(durationAttributeSet, new Color(111, 150, 255));
         StyleConstants.setForeground(commentAttributeSet, new Color(128, 128, 128));
         StyleConstants.setForeground(errorAttributeSet, new Color(238, 0, 1));
+        StyleConstants.setBackground(sameTimeNoteAttributeSet,new Color(245, 248, 255));
         inputStyledDocument = new MyDocument();
         inputTextPane.setDocument(inputStyledDocument);
         statementPattern = Pattern.compile("\\bparagraph\\b|\\bend\\b|\\bplay");
         keywordPattern = Pattern.compile("\\bspeed=|\\binstrument=|\\bvolume=|\\b1=");
         parenPattern = Pattern.compile("<(\\s*\\{?\\s*(1|2|4|8|g|w|\\*)+\\s*\\}?\\s*)+>");
+        sameNotePattern=Pattern.compile("\\|");
 
         //输入内容数组
         inputStatusList = new ArrayList<>();
@@ -371,6 +386,23 @@ public class GraphicalUserInterface extends JFrame {
                             commentAttributeSet, true
                     );
                 }
+        }
+
+        //同时音着色
+        int count = 0;
+        int last = 0;
+        Matcher noteMatcher = sameNotePattern.matcher(input);
+        while (noteMatcher.find()) {
+            count++;
+
+            if (count % 2 == 0) {
+                inputStyledDocument.setCharacterAttributes(
+                        last,
+                        noteMatcher.end() - last,
+                        sameTimeNoteAttributeSet, true
+                );
+            } else
+                last = noteMatcher.start();
         }
     }
 
