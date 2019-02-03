@@ -398,14 +398,28 @@ public class Semantic {
                                 break;
                             }
 
+                            byte currentNote;
+                            byte lastNote = -1;
+                            int totalDuration = 0;
+
                             do {
-                                //处理连音左括号
+                                currentNote = noteList.get(index).byteValue();
+                                if (currentNote != lastNote) {
+                                    if (lastNote != -1) {
+                                        midiTrack.insertNoteOn(channel, lastNote, (byte) 80);
+                                        midiTrack.insertNoteOff(totalDuration, channel, lastNote);
+                                        totalDuration = 0;
+                                    }
+                                    lastNote = noteList.get(index).byteValue();
+                                }
+                                totalDuration += durationList.get(index);
                                 index++;
                             } while (symbolQueue.peek().getPosition() != index);
 
-                            //读到连音右括号
                             symbolQueue.poll();
 
+                            midiTrack.insertNoteOn(channel, lastNote, (byte) 80);
+                            midiTrack.insertNoteOff(totalDuration, channel, lastNote);
                         }
                         break;
                 }
