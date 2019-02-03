@@ -1,7 +1,5 @@
 package entity.interpreter;
 
-import javafx.util.Pair;
-
 import java.util.*;
 
 /**
@@ -27,13 +25,13 @@ public class Paragraph {
 
     private List<Integer> durationList;
 
-    private Queue<Pair<Integer, Integer>> symbolQueue;
+    private Queue<Symbol> symbolQueue;
 
     public Paragraph() {
         Speed = 0.0F;
         noteList = new ArrayList<>();
         durationList = new ArrayList<>();
-        symbolQueue = new PriorityQueue<>(Comparator.comparingInt(Pair::getValue));
+        symbolQueue = new PriorityQueue<>(Comparator.comparingInt(Symbol::getPosition));
     }
 
     public byte getVolume() {
@@ -68,7 +66,7 @@ public class Paragraph {
         return durationList;
     }
 
-    public Queue<Pair<Integer, Integer>> getSymbolQueue() {
+    public Queue<Symbol> getSymbolQueue() {
         return symbolQueue;
     }
 

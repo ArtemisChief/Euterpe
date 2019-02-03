@@ -3,9 +3,9 @@ package component;
 import entity.interpreter.Node;
 import entity.interpreter.Note;
 import entity.interpreter.Paragraph;
+import entity.interpreter.Symbol;
 import entity.midi.MidiFile;
 import entity.midi.MidiTrack;
-import javafx.util.Pair;
 
 import java.util.*;
 
@@ -162,7 +162,7 @@ public class Semantic {
                                 toneOffset -= 12;
                                 break;
                             case "|":
-                                paragraph.getSymbolQueue().offer(new Pair<>(0, noteList.size()));
+                                paragraph.getSymbolQueue().offer(new Symbol(0, noteList.size()));
                                 break;
                             case "#":
                                 haftToneOffset = 1;
@@ -219,10 +219,10 @@ public class Semantic {
                     for (Node rhythm : child.getChildren()) {
                         switch (rhythm.getContent()) {
                             case "{":
-                                paragraph.getSymbolQueue().offer(new Pair<>(1, durationList.size()));
+                                paragraph.getSymbolQueue().offer(new Symbol(1, durationList.size()));
                                 break;
                             case "}":
-                                paragraph.getSymbolQueue().offer(new Pair<>(2, durationList.size()));
+                                paragraph.getSymbolQueue().offer(new Symbol(2, durationList.size()));
                                 break;
                             case "1":
                                 lineRhythmCount++;
@@ -354,35 +354,29 @@ public class Semantic {
 
         Queue<Note> bufferNotes = new PriorityQueue<>(Comparator.comparingInt(Note::getDeltaTime));
 
-        Queue<Pair<Integer, Integer>> symbolQueue = paragraph.getSymbolQueue();
+        Queue<Symbol> symbolQueue = paragraph.getSymbolQueue();
 
         Note tempNote;
 
         int count = noteList.size();
         for(int index=0;index<count;index++) {
-            while (!symbolQueue.isEmpty() && symbolQueue.peek().getValue() == index) {
+            while (!symbolQueue.isEmpty() && symbolQueue.peek().getPosition() == index) {
                 //i为符号后一个音符
-                switch (symbolQueue.poll().getKey()) {
+                switch (symbolQueue.poll().getSymbol()) {
                     case 0:
                         if (!symbolQueue.isEmpty()) {
-                            if (symbolQueue.peek().getKey() != 0) {
+                            if (symbolQueue.peek().getSymbol() != 0) {
                                 errorInfo.append("Line: 未知\t同时音间存在连音无意义\n");
                                 errorLines.add(0);
                                 break;
                             }
-
-//                            while (!bufferNotes.isEmpty()&& bufferNotes.peek().getIsPrimary()) {
-//                                tempNote = bufferNotes.poll();
-//                                midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
-//                                reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());
-//                            }
 
                             for (boolean isPrimary = true; true; isPrimary = false) {
                                 midiTrack.insertNoteOn(channel, noteList.get(index).byteValue(), (byte) 80);
                                 tempNote = new Note(durationList.get(index), noteList.get(index++).byteValue(), isPrimary);
                                 bufferNotes.offer(tempNote);
 
-                                if (symbolQueue.peek().getValue() == index)
+                                if (symbolQueue.peek().getPosition() == index)
                                     break;
                             }
 
@@ -398,7 +392,7 @@ public class Semantic {
 
                     case 1:
                         if (!symbolQueue.isEmpty()) {
-                            if (symbolQueue.peek().getKey() != 2) {
+                            if (symbolQueue.peek().getSymbol() != 2) {
                                 errorInfo.append("Line: 未知\t连音间存在同时音无意义\n");
                                 errorLines.add(0);
                                 break;
@@ -407,7 +401,7 @@ public class Semantic {
                             do {
                                 //处理连音左括号
                                 index++;
-                            } while (symbolQueue.peek().getValue() != index);
+                            } while (symbolQueue.peek().getPosition() != index);
 
                             //读到连音右括号
                             symbolQueue.poll();
