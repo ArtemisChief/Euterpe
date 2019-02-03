@@ -2,7 +2,6 @@ package component;
 
 import entity.interpreter.Node;
 import entity.interpreter.Token;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -256,7 +255,7 @@ public class Syntactic {
         Node speed = new Node("speed");
         Node terminalNode;
 
-        terminalNode = new Node("speedValue", tokens.get(++index).getContent(),tokens.get(index).getLine());
+        terminalNode = new Node("speedValue", tokens.get(++index).getContent(), tokens.get(index).getLine());
         speed.addChild(terminalNode);
         index++;
 
@@ -560,7 +559,7 @@ public class Syntactic {
 
         //length
         boolean inCurlyBraces = false;
-        while (!hadReadToEnd()&&(tokens.get(index).getType() != 14)) {
+        while (!hadReadToEnd() && (tokens.get(index).getType() != 14)) {
             //'{'，连音左括号
             if (tokens.get(index).getType() == 11) {
                 if (inCurlyBraces) {
@@ -740,30 +739,30 @@ public class Syntactic {
     }
 
     //判断当前token是否为段落属性的标识
-    private boolean isAttributeIdentifier(){
+    private boolean isAttributeIdentifier() {
         int syn = tokens.get(index).getType();
         return syn == 3 | syn == 4 | syn == 20 | syn == 21;
     }
 
     //判断当前token是否为旋律部分的元素
-    private boolean isMelodyElement(){
+    private boolean isMelodyElement() {
         int syn = tokens.get(index).getType();
-        return (syn >= 7 && syn <= 10 ) | syn == 18 | syn == 19 | syn == 22 | syn == 94 | syn == 98;
+        return (syn >= 7 && syn <= 10) | syn == 18 | syn == 19 | syn == 22 | syn == 94 | syn == 98;
     }
 
     //判断当前token是否为节奏部分的元素
-    public boolean isRhythmElement(){
+    public boolean isRhythmElement() {
         int syn = tokens.get(index).getType();
-        return (syn >= 11 && syn <= 15 ) | syn == 99;
+        return (syn >= 11 && syn <= 15) | syn == 99;
     }
 
     //判断段落是否已结束
-    private boolean paragraphHadEnd(){
+    private boolean paragraphHadEnd() {
         return tokens.get(index).getType() == 5;
     }
 
     //判断是否已经读到末尾token
-    private boolean hadReadToEnd(){
+    private boolean hadReadToEnd() {
         return !(index < tokens.size());
     }
 

@@ -1,7 +1,6 @@
 package component;
 
 import entity.interpreter.Token;
-
 import java.util.ArrayList;
 import java.util.List;
 

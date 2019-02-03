@@ -1,6 +1,5 @@
 import userInterface.GraphicalUserInterface;
 import org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper;
-
 import javax.swing.*;
 
 /**
@@ -15,6 +14,7 @@ import javax.swing.*;
  * ░░░░░░░░░░░█░▄▀█░▄▀░░█░▄▀█░▄▀░░░░░░░░░░
  * ░░░░░░░░░░░░▀░░░▀░░░░░▀░░░▀░░░░░░░░░░░░
  */
+
 public class Main {
 
     public static void main(String[] args) {

@@ -6,11 +6,6 @@ import java.util.*;
  * 段落类
  * 用于语义分析构造符号表
  * 以便翻译成Midi语言
- *
- * 符号队列表
- * 0    同时音符
- * 1    连音左括号
- * 2    连音右括号
  */
 
 public class Paragraph {

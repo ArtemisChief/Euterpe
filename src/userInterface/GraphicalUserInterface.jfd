@@ -6,7 +6,7 @@ new FormModel {
 		add( new FormWindow( "javax.swing.JFrame", new FormLayoutManager( class java.awt.GridLayout ) ) {
 			name: "this"
 			"font": new java.awt.Font( "Microsoft YaHei UI", 0, 12 )
-			"title": "Music Interpreter - New File"
+			"title": "Euterpe - New File"
 			"minimumSize": new java.awt.Dimension( 916, 709 )
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
 				"$layoutConstraints": "insets 0,hidemode 3"

@@ -1,7 +1,6 @@
 package entity.midi;
 
 import util.MidiUtil;
-
 import java.io.*;
 import java.util.List;
 

@@ -6,7 +6,6 @@ import entity.interpreter.Paragraph;
 import entity.interpreter.Symbol;
 import entity.midi.MidiFile;
 import entity.midi.MidiTrack;
-
 import java.util.*;
 
 public class Semantic {
@@ -359,11 +358,12 @@ public class Semantic {
         Note tempNote;
 
         int count = noteList.size();
-        for(int index=0;index<count;index++) {
+        for (int index = 0; index < count; index++) {
             while (!symbolQueue.isEmpty() && symbolQueue.peek().getPosition() == index) {
-                //i为符号后一个音符
+                //处理特殊符号，i为符号后一个音符
                 switch (symbolQueue.poll().getSymbol()) {
                     case 0:
+                        //同时音
                         if (!symbolQueue.isEmpty()) {
                             if (symbolQueue.peek().getSymbol() != 0) {
                                 errorInfo.append("Line: 未知\t同时音间存在连音无意义\n");
@@ -391,6 +391,7 @@ public class Semantic {
                         break;
 
                     case 1:
+                        //连音
                         if (!symbolQueue.isEmpty()) {
                             if (symbolQueue.peek().getSymbol() != 2) {
                                 errorInfo.append("Line: 未知\t连音间存在同时音无意义\n");
@@ -426,10 +427,11 @@ public class Semantic {
             }
 
             if (index < count) {
+                //特殊符号外的音
                 midiTrack.insertNoteOn(channel, noteList.get(index).byteValue(), (byte) 80);
 
                 if (!bufferNotes.isEmpty()) {
-                    //同时音
+                    //还有同时音在播放中
                     while (!bufferNotes.isEmpty() && durationList.get(index) >= bufferNotes.peek().getDeltaTime()) {
                         tempNote = bufferNotes.poll();
                         midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
@@ -444,6 +446,7 @@ public class Semantic {
         }
 
         while (!bufferNotes.isEmpty()) {
+            //还有同时音在播放中
             tempNote = bufferNotes.poll();
             midiTrack.insertNoteOff(tempNote.getDeltaTime(), channel, tempNote.getNote());
             reduceDeltaTimeInQueue(bufferNotes, tempNote.getDeltaTime());

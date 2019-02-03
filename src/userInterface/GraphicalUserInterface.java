@@ -84,7 +84,7 @@ public class GraphicalUserInterface extends JFrame {
             else {
                 String text = inputTextPane.getText().replace("\r", "");
                 char b;
-                if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b==' ' || b == ')' || b == ']' || b == '|' || (offs > 0 && text.charAt(offs - 1) == '/')) {
+                if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b == ' ' || b == ')' || b == ']' || b == '|' || (offs > 0 && text.charAt(offs - 1) == '/')) {
                     isAutoComplete = true;
                     switch (str) {
                         case "(":
@@ -140,6 +140,7 @@ public class GraphicalUserInterface extends JFrame {
             contentChanged();
         }
     }
+
     private MyDocument inputStyledDocument;
 
     private String[] noteMapping;
@@ -157,7 +158,7 @@ public class GraphicalUserInterface extends JFrame {
         normalAttributeSet = new SimpleAttributeSet();
         commentAttributeSet = new SimpleAttributeSet();
         errorAttributeSet = new SimpleAttributeSet();
-        sameTimeNoteAttributeSet=new SimpleAttributeSet();
+        sameTimeNoteAttributeSet = new SimpleAttributeSet();
 
         StyleConstants.setForeground(attributeSet, new Color(92, 101, 192));
         StyleConstants.setBold(attributeSet, true);
@@ -166,13 +167,13 @@ public class GraphicalUserInterface extends JFrame {
         StyleConstants.setForeground(durationAttributeSet, new Color(111, 150, 255));
         StyleConstants.setForeground(commentAttributeSet, new Color(128, 128, 128));
         StyleConstants.setForeground(errorAttributeSet, new Color(238, 0, 1));
-        StyleConstants.setBackground(sameTimeNoteAttributeSet,new Color(245, 248, 255));
+        StyleConstants.setBackground(sameTimeNoteAttributeSet, new Color(245, 248, 255));
         inputStyledDocument = new MyDocument();
         inputTextPane.setDocument(inputStyledDocument);
         statementPattern = Pattern.compile("\\bparagraph\\b|\\bend\\b|\\bplay");
         keywordPattern = Pattern.compile("\\bspeed=|\\binstrument=|\\bvolume=|\\b1=");
         parenPattern = Pattern.compile("<(\\s*\\{?\\s*(1|2|4|8|g|w|\\*)+\\s*\\}?\\s*)+>");
-        sameNotePattern=Pattern.compile("\\|");
+        sameNotePattern = Pattern.compile("\\|");
 
         //输入内容数组
         inputStatusList = new ArrayList<>();
@@ -415,7 +416,7 @@ public class GraphicalUserInterface extends JFrame {
             outputTextPane.setText("");
             hasChanged = false;
             isLoadedMidiFile = false;
-            this.setTitle("Music Interpreter - New Empty File");
+            this.setTitle("Euterpe - New Empty File");
             saveInputStatus();
         }
     }
@@ -473,7 +474,7 @@ public class GraphicalUserInterface extends JFrame {
             outputTextPane.setText("");
             hasChanged = false;
             isLoadedMidiFile = false;
-            this.setTitle("Music Interpreter - New Template File");
+            this.setTitle("Euterpe - New Template File");
             saveInputStatus();
         }
     }
@@ -485,7 +486,7 @@ public class GraphicalUserInterface extends JFrame {
 
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Music Interpreter File", "mui");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Euterpe File", "mui");
         fileChooser.setFileFilter(filter);
         int value = fileChooser.showOpenDialog(this);
         if (value == JFileChooser.CANCEL_OPTION)
@@ -507,7 +508,7 @@ public class GraphicalUserInterface extends JFrame {
             hasChanged = false;
             stopDirectMenuItemActionPerformed(null);
             isLoadedMidiFile = false;
-            this.setTitle("Music Interpreter - " + file.getName());
+            this.setTitle("Euterpe - " + file.getName());
             saveInputStatus();
         } catch (IOException e1) {
 //            e1.printStackTrace();
@@ -527,7 +528,7 @@ public class GraphicalUserInterface extends JFrame {
                 bufferedWriter.close();
                 hasChanged = false;
                 isLoadedMidiFile = false;
-                this.setTitle("Music Interpreter - " + file.getName());
+                this.setTitle("Euterpe - " + file.getName());
                 stopDirectMenuItemActionPerformed(null);
                 isLoadedMidiFile = false;
             } catch (IOException e1) {
@@ -540,7 +541,7 @@ public class GraphicalUserInterface extends JFrame {
     private void saveAsMenuItemActionPerformed(ActionEvent e) {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Music Interpreter File", "mui");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Euterpe File", "mui");
         fileChooser.setFileFilter(filter);
         int value = fileChooser.showSaveDialog(this);
         if (value == JFileChooser.CANCEL_OPTION)
@@ -558,7 +559,7 @@ public class GraphicalUserInterface extends JFrame {
             hasSaved = true;
             hasChanged = false;
             isLoadedMidiFile = false;
-            this.setTitle("Music Interpreter - " + file.getName());
+            this.setTitle("Euterpe - " + file.getName());
             stopDirectMenuItemActionPerformed(null);
             isLoadedMidiFile = false;
         } catch (IOException e1) {
@@ -986,35 +987,28 @@ public class GraphicalUserInterface extends JFrame {
         setOutputTextPaneEditable(false);
 
         String str = "============================================\n" +
-                "\t               Music Language Interpreter\n" +
+                "\t\t          Euterpe\n" +
+                "--------------------------------------------------------------------------\n" +
+                "* 名称来源于希腊神话中司管抒情诗与音乐的缪斯——欧忒耳佩\n" +
+                "   意为“令人快乐”（原Music Interpreter）\n" +
                 "\n" +
-                "\t       Designed: Chief, yyzih and AsrielMao\n" +
+                "1.简介\n" +
+                "\t通过设计原创的音乐语言，运用解释器原理设计\n" +
+                "\t以便于键盘输入为特点的，数字乐谱——Midi解释器\n" +
+                "\t包含完整的词法分析、语法分析与语义分析\n" +
+                "\t可通过内置人机良好的数字乐谱编辑器谱写乐谱\n" +
+                "\t并通过内置实时Midi播放器，加载SoundFont2音源播放\n" +
+                "\t同时包含便于扒谱的工具与生成Midi文件等功能\n" +
                 "\n" +
-                "\t\t  Current Version: 3.5.0\n" +
+                "2.项目成员\n" +
+                "\t1）项目组长，语义分析，用户界面：Chief\n" +
+                "\t2）词法分析，Midi转Mui：yyzih\n" +
+                "\t3）语法分析，语言设计：AsrielMao\n" +
                 "\n" +
-                "\n" +
-                "    The Music Language Interpreter is a light weight interpreter,\n" +
-                "\n" +
-                "which contains complete lexical analysis, syntactic analysis and\n" +
-                "\n" +
-                "semantic analysis, for converting digit score to Arduino code or\n" +
-                "\n" +
-                "Midi file. \n" +
-                "\n" +
-                "    The Music Language Interpreter also contains a simple Midi\n" +
-                "\n" +
-                "player for playing midi file with SoundFont2 or SoundFont3.\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "\n" +
+                "3.当前版本\n" +
+                "\t4.0.0 Alpha\n" +
                 "\n" +
                 "\t\t\t\t   All Rights Reserved. \n" +
-                "\n" +
                 "    \t    Copyright © 2018-2020 Chief, yyzih and AsrielMao.\n" +
                 "============================================";
         outputTextPane.setText(str);
@@ -1071,7 +1065,7 @@ public class GraphicalUserInterface extends JFrame {
             hasChanged = false;
             isLoadedMidiFile = false;
 
-            this.setTitle("Music Interpreter - Demo");
+            this.setTitle("Euterpe - Demo");
             tipsMenuItemActionPerformed(null);
             saveInputStatus();
         }
@@ -1088,14 +1082,14 @@ public class GraphicalUserInterface extends JFrame {
                 "* 你可以在“Help-Tips”中随时打开Tips\n" +
                 "\n" +
                 "1. 构成乐谱的成分：\n" +
-                "\t1）paragraph Name  声部声明\n" +
+                "\t1）paragraph Name  段落声明，以下各属性独立\n" +
                 "\t2）instrument= 0      \t演奏的乐器（非必要 默认钢琴）\n" +
-                "\t3）volume= 127        该声部的音量（非必要 默认127）\n" +
-                "\t4）speed= 90\t该声部演奏速度（非必要 默认90）\n" +
-                "\t5）1= C\t\t该声部调性（非必要 默认C调）\n" +
-                "\t6）((1))(2)3[4][[5]]\t音符的音名，即音高\n" +
-                "\t7）<1248gw*>\t音符的时值，即持续时间\n" +
-                "\t8）end\t\t声部声明结束\n" +
+                "\t3）volume= 127        该段落的音量（非必要 默认127）\n" +
+                "\t4）speed= 90\t该段落演奏速度（非必要 默认90）\n" +
+                "\t5）1= C\t\t该段落调性（非必要 默认C调）\n" +
+                "\t6）((1))(2)|34|[55]\t音符的音名，即音高\n" +
+                "\t7）<1248{gw*}>\t音符的时值，即持续时间\n" +
+                "\t8）end\t\t段落声明结束\n" +
                 "\n" +
                 "2. 乐谱成分的解释：\n" +
                 "\t1）声部声明：标识符须以字母开头，后跟字母或数字\n" +
@@ -1105,13 +1099,15 @@ public class GraphicalUserInterface extends JFrame {
                 "\t5）声部调性：CDEFGAB加上b（降号）与#（升号）\n" +
                 "\t6）“( )”内为低八度，可叠加“[ ]”内为高八度，同上\n" +
                 "\t7）“< >”内为全、2、4、6、8、16、32分音符与附点\n" +
-                "\t8）声明结束：须用end结束声明，对应paragraph\n" +
+                "\t8）“| |”内为同时音，该符号不可叠加，意为同时演奏的音\n" +
+                "\t9）“{ }”内为连音，若音高相同则会合并成一个音\n" +
+                "\t10）声明结束：须用end结束声明，对应paragraph\n" +
                 "\n" +
                 "3. 播放乐谱的方法：\n" +
                 "\t1）通过“play( )”进行播放，( )”内为声部的标识符\n" +
                 "\t2）“&”左右的声部将同时播放，\n" +
                 "\t3）“ , ”左右的声部将先后播放\n" +
-                "============================================";
+                "===========================================";
         outputTextPane.setText(str);
         outputTextPane.setCaretPosition(0);
     }
@@ -1262,7 +1258,7 @@ public class GraphicalUserInterface extends JFrame {
 
         //======== this ========
         setFont(new Font("Microsoft YaHei UI", Font.PLAIN, 12));
-        setTitle("Music Interpreter - New File");
+        setTitle("Euterpe - New File");
         setMinimumSize(new Dimension(916, 709));
         Container contentPane = getContentPane();
         contentPane.setLayout(new GridLayout());
