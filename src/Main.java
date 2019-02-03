@@ -19,7 +19,6 @@ public class Main {
 
     public static void main(String[] args) {
         try {
-
             System.setProperty("sun.java2d.noddraw", "true");
             UIManager.put("RootPane.setupButtonVisible", false);
             BeautyEyeLNFHelper.translucencyAtFrameInactive = false;
@@ -28,10 +27,8 @@ public class Main {
         } catch (Exception e) {
             System.out.println(e.toString());
         }
-
         GraphicalUserInterface graphicalUserInterface = new GraphicalUserInterface();
         graphicalUserInterface.setVisible(true);
-
     }
 
 }

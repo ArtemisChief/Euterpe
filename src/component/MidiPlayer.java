@@ -74,13 +74,16 @@ public class MidiPlayer {
         int count = 58 - title.length();
 
         StringBuilder titleBuilder = new StringBuilder(title);
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++)
             titleBuilder.append(" ");
-        }
+
         title = titleBuilder.toString();
 
-        if (length < 5)
-            title += "\t";
+        if (length < 5) {
+            count = 6 - length;
+            for (int i = 0; i < count; i++)
+                titleBuilder.append(" ");
+        }
 
         this.title = title;
     }
