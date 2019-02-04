@@ -319,10 +319,12 @@ public class Semantic {
 
                                 if (index > midiTracks.size() - 1) {
                                     midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), totalDuration, (byte) index);
-                                    midiTracks.add(midiTrack);
+                                    if (midiTrack != null)
+                                        midiTracks.add(midiTrack);
                                 } else {
                                     midiTrack = constuctMidiTrackPart(paragraphMap.get(paraName), 0, (byte) index);
-                                    midiTracks.get(index).merge(midiTrack);
+                                    if (midiTrack != null)
+                                        midiTracks.get(index).merge(midiTrack);
                                 }
 
                                 break;
