@@ -109,7 +109,7 @@ public class GraphicalUserInterface extends JFrame {
                     }
                 }
 
-                if (offs < text.length() && (str.equals(")") || str.equals("]") || str.equals("}") || str.equals(">")) && ((b = text.charAt(offs)) == ')' || b == ']' || b == '}' || b == '>')) {
+                if (offs < text.length() && ((b = text.charAt(offs)) == ')' && str.equals(")") || str.equals("]") && b == ']' || str.equals("}") && b == '}' || str.equals(">") && b == '>' || str.equals("|") && b == '|')) {
                     str = "";
                     isAutoComplete = true;
                 }

@@ -161,7 +161,7 @@ public class Semantic {
                                 toneOffset -= 12;
                                 break;
                             case "|":
-                                paragraph.getSymbolQueue().offer(new Symbol(0, noteList.size()));
+                                paragraph.getSymbolQueue().offer(new Symbol(1, noteList.size()));
                                 break;
                             case "#":
                                 haftToneOffset = 1;
@@ -218,7 +218,7 @@ public class Semantic {
                     for (Node rhythm : child.getChildren()) {
                         switch (rhythm.getContent()) {
                             case "{":
-                                paragraph.getSymbolQueue().offer(new Symbol(1, durationList.size()));
+                                paragraph.getSymbolQueue().offer(new Symbol(0, durationList.size()));
                                 break;
                             case "}":
                                 paragraph.getSymbolQueue().offer(new Symbol(2, durationList.size()));
@@ -364,10 +364,10 @@ public class Semantic {
             while (!symbolQueue.isEmpty() && symbolQueue.peek().getPosition() == index) {
                 //处理特殊符号，i为符号后一个音符
                 switch (symbolQueue.poll().getSymbol()) {
-                    case 0:
+                    case 1:
                         //同时音
                         if (!symbolQueue.isEmpty()) {
-                            if (symbolQueue.peek().getSymbol() != 0) {
+                            if (symbolQueue.peek().getSymbol() != 1) {
                                 errorInfo.append("Line: 未知\t同时音间存在连音无意义\n");
                                 errorLines.add(0);
                                 break;
@@ -392,7 +392,7 @@ public class Semantic {
                         }
                         break;
 
-                    case 1:
+                    case 0:
                         //连音
                         if (!symbolQueue.isEmpty()) {
                             if (symbolQueue.peek().getSymbol() != 2) {

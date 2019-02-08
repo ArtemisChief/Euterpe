@@ -26,7 +26,12 @@ public class Paragraph {
         Speed = 0.0F;
         noteList = new ArrayList<>();
         durationList = new ArrayList<>();
-        symbolQueue = new PriorityQueue<>(Comparator.comparingInt(Symbol::getPosition));
+        symbolQueue = new PriorityQueue<>((o1, o2) -> {
+            if (o1.getPosition() == o2.getPosition())
+                return o2.getSymbol() - o1.getSymbol();
+            else
+                return o1.getPosition() - o2.getPosition();
+        });
     }
 
     public byte getVolume() {
