@@ -817,6 +817,7 @@ public class GraphicalUserInterface extends JFrame {
 
         playDirectMenuItem.setText("Play");
         midiPlayer.stop();
+        isLoadedMidiFile = false;
         forbidOutputButton(false);
     }
 
