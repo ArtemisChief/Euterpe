@@ -2,6 +2,7 @@ package component;
 
 import javax.sound.midi.MidiSystem;
 import javax.sound.midi.Sequencer;
+import javax.sound.midi.Soundbank;
 import javax.sound.midi.Synthesizer;
 import java.io.File;
 
@@ -10,6 +11,8 @@ public class MidiPlayer {
     private Synthesizer synthesizer;
 
     private Sequencer sequencer;
+
+    private Soundbank soundbank;
 
     private long microsecondPosition;
 
@@ -31,8 +34,12 @@ public class MidiPlayer {
 
     public void loadSoundBank(File soundFontFile) {
         try {
-            synthesizer.unloadAllInstruments(synthesizer.getDefaultSoundbank());
-            synthesizer.loadAllInstruments(MidiSystem.getSoundbank(soundFontFile));
+            if (soundbank == null)
+                synthesizer.unloadAllInstruments(synthesizer.getDefaultSoundbank());
+            else
+                synthesizer.unloadAllInstruments(soundbank);
+
+            synthesizer.loadAllInstruments(soundbank = MidiSystem.getSoundbank(soundFontFile));
         } catch (Exception e) {
             e.printStackTrace();
         }
