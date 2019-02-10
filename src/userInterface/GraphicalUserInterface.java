@@ -39,6 +39,7 @@ public class GraphicalUserInterface extends JFrame {
     private boolean hasSaved = false;
     private boolean hasChanged = false;
     private boolean isLoadedMidiFile = false;
+    private boolean canProcessDocument = true;
 
     private SimpleAttributeSet attributeSet;
     private SimpleAttributeSet statementAttributeSet;
@@ -72,72 +73,81 @@ public class GraphicalUserInterface extends JFrame {
     private class MyDocument extends DefaultStyledDocument {
         @Override
         public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
-            boolean isComment = false;
-            boolean isAutoComplete = false;
-            //处理按键映射
-            if (str.equals("0") || str.equals("1") || str.equals("2") || str.equals("3") || str.equals("4") ||
-                    str.equals("5") || str.equals("6") || str.equals("7") || str.equals("8") || str.equals("9")) {
-                str = noteMapping[Integer.parseInt(str)];
-            }
+            if (canProcessDocument) {
+                boolean isComment = false;
+                boolean isAutoComplete = false;
+                //处理按键映射
+                if (str.equals("0") || str.equals("1") || str.equals("2") || str.equals("3") || str.equals("4") ||
+                        str.equals("5") || str.equals("6") || str.equals("7") || str.equals("8") || str.equals("9")) {
+                    str = noteMapping[Integer.parseInt(str)];
+                }
 
-            //处理自动补全
-            else {
-                String text = inputTextPane.getText().replace("\r", "");
-                char b;
-                if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b == ' ' || b == ')' || b == ']' || b == '|' || (offs > 0 && text.charAt(offs - 1) == '/')) {
-                    isAutoComplete = true;
-                    switch (str) {
-                        case "(":
-                            str += ")";
-                            break;
-                        case "[":
-                            str += "]";
-                            break;
-                        case "{":
-                            str += "}";
-                            break;
-                        case "<":
-                            str += ">";
-                            break;
-                        case "|":
-                            str += "|";
-                            break;
-                        case "*":
-                            str += "\n\n*/";
-                            isComment = true;
-                            break;
+                //处理自动补全
+                else {
+                    String text = inputTextPane.getText().replace("\r", "");
+                    char b;
+                    if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b == ' ' || b == ')' || b == ']' || b == '|' || (offs > 0 && text.charAt(offs - 1) == '/')) {
+                        isAutoComplete = true;
+                        switch (str) {
+                            case "(":
+                                str += ")";
+                                break;
+                            case "[":
+                                str += "]";
+                                break;
+                            case "{":
+                                str += "}";
+                                break;
+                            case "<":
+                                str += ">";
+                                break;
+                            case "|":
+                                str += "|";
+                                break;
+                            case "*":
+                                str += "\n\n*/";
+                                isComment = true;
+                                break;
+                        }
+                    }
+
+                    if (offs < text.length() && ((b = text.charAt(offs)) == ')' && str.equals(")") || str.equals("]") && b == ']' || str.equals("}") && b == '}' || str.equals(">") && b == '>' || str.equals("|") && b == '|')) {
+                        str = "";
+                        isAutoComplete = true;
                     }
                 }
 
-                if (offs < text.length() && ((b = text.charAt(offs)) == ')' && str.equals(")") || str.equals("]") && b == ']' || str.equals("}") && b == '}' || str.equals(">") && b == '>' || str.equals("|") && b == '|')) {
-                    str = "";
-                    isAutoComplete = true;
-                }
-            }
+                saveInputStatus();
 
-            super.insertString(offs, str, a);
+                super.insertString(offs, str, a);
 
-            if (isAutoComplete)
-                inputTextPane.setCaretPosition(offs + 1);
-            if (isComment)
-                inputTextPane.setCaretPosition(offs + 2);
+                if (isAutoComplete)
+                    inputTextPane.setCaretPosition(offs + 1);
+                if (isComment)
+                    inputTextPane.setCaretPosition(offs + 2);
 
-            contentChanged();
+                contentChanged();
+            } else
+                super.insertString(offs, str, a);
         }
 
         @Override
         public void remove(int offs, int len) throws BadLocationException {
-            //自动删除界符
-            if (offs < inputTextPane.getText().replace("\r", "").length() - 1) {
-                char a = inputTextPane.getText().replace("\r", "").charAt(offs);
-                char b = inputTextPane.getText().replace("\r", "").charAt(offs + 1);
-                if ((a == '(' && b == ')') || (a == '[' && b == ']') || (a == '{' && b == '}') || (a == '<' && b == '>') || (a == '|' && b == '|')) {
-                    len++;
+            if (canProcessDocument) {
+                //自动删除界符
+                if (offs < inputTextPane.getText().replace("\r", "").length() - 1) {
+                    char a = inputTextPane.getText().replace("\r", "").charAt(offs);
+                    char b = inputTextPane.getText().replace("\r", "").charAt(offs + 1);
+                    if ((a == '(' && b == ')') || (a == '[' && b == ']') || (a == '{' && b == '}') || (a == '<' && b == '>') || (a == '|' && b == '|')) {
+                        len++;
+                    }
                 }
-            }
 
-            super.remove(offs, len);
-            contentChanged();
+                saveInputStatus();
+                super.remove(offs, len);
+                contentChanged();
+            } else
+                super.remove(offs, len);
         }
     }
 
@@ -206,9 +216,6 @@ public class GraphicalUserInterface extends JFrame {
         inputTextPane.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (!e.isControlDown() && e.getKeyCode() != KeyEvent.VK_CONTROL)
-                    saveInputStatus();
-
                 if (e.getKeyCode() == KeyEvent.VK_RIGHT)
                     forwardMenuItemActionPerformed(null);
 
@@ -221,17 +228,24 @@ public class GraphicalUserInterface extends JFrame {
                 if (e.getKeyCode() == KeyEvent.VK_LEFT && e.isControlDown())
                     fastBackwardMenuItemActionPerformed(null);
 
-                if (e.getKeyCode() == KeyEvent.VK_V && e.isControlDown())
-                    saveInputStatus();
-
                 if (e.getKeyCode() == KeyEvent.VK_S && e.isControlDown())
                     saveMenuItemActionPerformed(null);
 
-                if (e.getKeyCode() == KeyEvent.VK_Z && e.isControlDown())
+                if (e.getKeyCode() == KeyEvent.VK_Z && e.isControlDown()) {
+                    canProcessDocument = false;
                     undo();
+                }
 
-                if (e.getKeyCode() == KeyEvent.VK_Y && e.isControlDown())
+                if (e.getKeyCode() == KeyEvent.VK_Y && e.isControlDown()) {
+                    canProcessDocument = false;
                     redo();
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_Z && e.isControlDown() || e.getKeyCode() == KeyEvent.VK_Y && e.isControlDown())
+                    canProcessDocument = true;
             }
         });
 
@@ -272,16 +286,17 @@ public class GraphicalUserInterface extends JFrame {
 
     //撤销(undo)
     private void undo() {
-        if (inputStatusListIndex == inputStatusListMax + 1)
-            if (!inputStatusList.get(inputStatusListIndex - 1).inputString.equals(inputStatusList.get(inputStatusListIndex - 2).inputString)) {
-                saveInputStatus();
-                inputStatusListIndex--;
-            }
+        if (inputStatusListIndex == inputStatusListMax + 1) {
+//            if (!inputStatusList.get(inputStatusListIndex - 1).inputString.equals(inputStatusList.get(inputStatusListIndex - 2).inputString)) {
+            saveInputStatus();
+            inputStatusListIndex--;
+        }
 
         if (inputStatusListIndex > 0) {
             InputStatus inputStatus = inputStatusList.get(--inputStatusListIndex);
             inputTextPane.setText(inputStatus.inputString);
             inputTextPane.setCaretPosition(inputStatus.caretPos);
+            contentChanged();
         }
     }
 
@@ -291,6 +306,7 @@ public class GraphicalUserInterface extends JFrame {
             InputStatus inputStatus = inputStatusList.get(++inputStatusListIndex);
             inputTextPane.setText(inputStatus.inputString);
             inputTextPane.setCaretPosition(inputStatus.caretPos);
+            contentChanged();
         }
     }
 
@@ -417,7 +433,6 @@ public class GraphicalUserInterface extends JFrame {
             hasChanged = false;
             isLoadedMidiFile = false;
             this.setTitle("Euterpe - New Empty File");
-            saveInputStatus();
         }
     }
 
@@ -475,7 +490,6 @@ public class GraphicalUserInterface extends JFrame {
             hasChanged = false;
             isLoadedMidiFile = false;
             this.setTitle("Euterpe - New Template File");
-            saveInputStatus();
         }
     }
 
@@ -483,6 +497,9 @@ public class GraphicalUserInterface extends JFrame {
     private void openMenuItemActionPerformed(ActionEvent e) {
         if (!showSaveComfirm("Exist unsaved content, save before open file?"))
             return;
+
+        canProcessDocument = false;
+        saveInputStatus();
 
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -501,6 +518,7 @@ public class GraphicalUserInterface extends JFrame {
                 stringBuilder.append(System.getProperty("line.separator"));
             }
             bufferedReader.close();
+
             inputTextPane.setText(stringBuilder.toString());
             inputTextPane.setCaretPosition(0);
             outputTextPane.setText("");
@@ -509,7 +527,8 @@ public class GraphicalUserInterface extends JFrame {
             stopDirectMenuItemActionPerformed(null);
             isLoadedMidiFile = false;
             this.setTitle("Euterpe - " + file.getName());
-            saveInputStatus();
+            canProcessDocument = true;
+            contentChanged();
         } catch (IOException e1) {
 //            e1.printStackTrace();
         }
@@ -1067,7 +1086,6 @@ public class GraphicalUserInterface extends JFrame {
 
             this.setTitle("Euterpe - Demo");
             tipsMenuItemActionPerformed(null);
-            saveInputStatus();
         }
     }
 
