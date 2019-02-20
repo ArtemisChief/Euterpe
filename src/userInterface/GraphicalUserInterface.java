@@ -87,21 +87,25 @@ public class GraphicalUserInterface extends JFrame {
                     String text = inputTextPane.getText().replace("\r", "");
                     char b;
                     if (offs == text.length() || (b = text.charAt(offs)) == '\n' || b == ' ' || b == ')' || b == ']' || b == '|' || (offs > 0 && text.charAt(offs - 1) == '/')) {
-                        isAutoComplete = true;
                         switch (str) {
                             case "(":
+                                isAutoComplete = true;
                                 str += ")";
                                 break;
                             case "[":
+                                isAutoComplete = true;
                                 str += "]";
                                 break;
                             case "{":
+                                isAutoComplete = true;
                                 str += "}";
                                 break;
                             case "<":
+                                isAutoComplete = true;
                                 str += ">";
                                 break;
                             case "|":
+                                isAutoComplete = true;
                                 str += "|";
                                 break;
                             case "*":
@@ -244,7 +248,7 @@ public class GraphicalUserInterface extends JFrame {
 
             @Override
             public void keyReleased(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_Z && e.isControlDown() || e.getKeyCode() == KeyEvent.VK_Y && e.isControlDown())
+                if (e.isControlDown() && (e.getKeyCode() == KeyEvent.VK_Z || e.getKeyCode() == KeyEvent.VK_Y))
                     canProcessDocument = true;
             }
         });

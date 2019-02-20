@@ -315,6 +315,11 @@ public class Semantic {
                                     break;
                                 }
 
+                                int tempIndex=index;
+
+                                if(paraName.equals("Drums"))
+                                    index=9;
+
                                 MidiTrack midiTrack;
 
                                 if (index > midiTracks.size() - 1) {
@@ -326,6 +331,9 @@ public class Semantic {
                                     if (midiTrack != null)
                                         midiTracks.get(index).merge(midiTrack);
                                 }
+
+                                if(paraName.equals("Drums"))
+                                    index=tempIndex;
 
                                 break;
                         }
