@@ -4,7 +4,7 @@
 
 paragraph Piano1
 instrument= 0
-volume= 127
+volume= 120
 speed= 78
 05 <2*4>
 6[3]656 056[3]65 <88882 4*88888>
@@ -38,7 +38,7 @@ end
 
 paragraph Piano2
 instrument= 0
-volume= 100
+volume= 70
 speed= 78
 0 <1>
 |1(4)|131(4)131 |2(5)|(7)2(757)2(7) <888888888 888888888>
@@ -88,8 +88,8 @@ speed= 78
 end
 
 paragraph Strings
-instrument= 48
-volume= 120
+instrument= 51
+volume= 90
 speed= 78
 0000000000000000<1111111111111111>
 0000000000000000<1111111111111111>
@@ -101,7 +101,7 @@ end
 
 paragraph Glockenspiel
 instrument= 9
-volume= 65
+volume= 75
 speed= 78
 0<1>
 (66)336633 (66)336633 <88888888 88888888>
@@ -126,7 +126,7 @@ end
 
 paragraph Drums
 instrument= 0
-volume= 127
+volume= 100
 speed= 78
 0000000000000000<1111111111111111>
 0((#4#6)21)<28888>
