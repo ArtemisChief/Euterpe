@@ -90,3 +90,9 @@ The runnable jar file is available:
 
 
 For the source code, just download the project and add the libraries in lib folder. As for IDEA, click "File - Project Structure - Libraries - Add" to add the three jar separately.
+
+## Contributors
+
+* [Chief](https://github.com/ArtemisiaChief)
+* [yyzih](https://github.com/yyzih)
+* [AsrielMao](https://github.com/AsrielMao)
