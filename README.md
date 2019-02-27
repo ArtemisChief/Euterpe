@@ -69,7 +69,7 @@ For the numbers not in < >
 * \# for sharp
 * b for flat
 * ( ) for ottava alta
-* \[ ] for ottava bassa
+* \[ \] for ottava bassa
 * | | for the notes playing the same time
 
 For the play function
