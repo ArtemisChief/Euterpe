@@ -61,16 +61,16 @@ For the numbers in < >
 * g for sixteenth note
 * w for thirty-second note
 * \* for dotted note
-* { } for tie
+* "{ }" for tie
   
 For the numbers not in < >
 * 1-7 for notes
 * 0 for rest
 * \# for sharp
 * b for flat
-* ( ) for ottava alta
-* \[ \] for ottava bassa
-* | | for the notes playing the same time
+* "( )" for ottava alta
+* "[ ]" for ottava bassa
+* "| |" for the notes playing the same time
 
 For the play function
 * "," means play the second paragraph after the first one
@@ -85,7 +85,7 @@ The Euterpe project builds and tests on the following platforms:
 * Microsoft Windows 10
 * Linux (Ubuntu 18.04)
 
-The runnable jar file is available below:
+The runnable jar file is available:
 [Download Here](https://github.com/ArtemisiaChief/Euterpe/releases/download/1.0/Euterpe.v1.0.7z)
 
 
