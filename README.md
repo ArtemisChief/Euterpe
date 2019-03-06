@@ -4,6 +4,8 @@
 
 Simple editor and Midi player for a original designed music language, which supports limited but core functions of creating .mid type media file. Use it for making track, for playing music, or just for fun.
 
+Introduction in Chinese: [Click Here](https://lab-ch76.top/2019/02/euterpe/)
+
 ## Example
 
 Run this
