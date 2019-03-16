@@ -88,8 +88,8 @@ speed= 78
 end
 
 paragraph Strings
-instrument= 51
-volume= 90
+instrument= 48
+volume= 120
 speed= 78
 0000000000000000<1111111111111111>
 0000000000000000<1111111111111111>
@@ -101,7 +101,7 @@ end
 
 paragraph Glockenspiel
 instrument= 9
-volume= 75
+volume= 60
 speed= 78
 0<1>
 (66)336633 (66)336633 <88888888 88888888>
